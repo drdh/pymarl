@@ -1,5 +1,5 @@
-from modules.agents import REGISTRY as agent_REGISTRY
-from components.action_selectors import REGISTRY as action_REGISTRY
+from ..modules.agents import REGISTRY as agent_REGISTRY
+from ..components.action_selectors import REGISTRY as action_REGISTRY
 from .basic_controller import BasicMAC
 import torch as th
 
@@ -25,12 +25,13 @@ class SeparateMAC(BasicMAC):
         return chosen_actions
 
     def forward(self, ep_batch, t, test_mode=False):
-        agent_inputs = self._build_inputs(ep_batch, t)
+        agent_inputs = self._build_inputs(ep_batch, t) # (bs*n,(obs+act+id))
         avail_actions = ep_batch["avail_actions"][:, t]
+                                                # (bs*n,(obs+act+id)), (bs,n,hidden_size)
         agent_outs, self.hidden_states = self.agent(agent_inputs, self.hidden_states)
-
+        #(bs*n,n_actions), (bs*n,hidden_dim)
         # Softmax the agent outputs if they're policy logits
-        if self.agent_output_type == "pi_logits":
+        if self.agent_output_type == "pi_logits":  # q for QMix. Ignored
 
             if getattr(self.args, "mask_before_softmax", True):
                 # Make the logits for unavailable actions very negative to minimise their affect on the softmax
@@ -52,7 +53,7 @@ class SeparateMAC(BasicMAC):
                     # Zero out the unavailable actions
                     agent_outs[reshaped_avail_actions == 0] = 0.0
 
-        return agent_outs.view(ep_batch.batch_size, self.n_agents, -1)
+        return agent_outs.view(ep_batch.batch_size, self.n_agents, -1)  #(bs,n,n_actions)
 
     def init_hidden(self, batch_size):
         self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, -1)  # bav
@@ -81,15 +82,17 @@ class SeparateMAC(BasicMAC):
         bs = batch.batch_size
         inputs = []
         inputs.append(batch["obs"][:, t])  # b1av
-        if self.args.obs_last_action:
+        if self.args.obs_last_action: #True for QMix
             if t == 0:
-                inputs.append(th.zeros_like(batch["actions_onehot"][:, t]))
+                inputs.append(th.zeros_like(batch["actions_onehot"][:, t])) #last actions are empty
             else:
                 inputs.append(batch["actions_onehot"][:, t-1])
-        if self.args.obs_agent_id:
-            inputs.append(th.eye(self.n_agents, device=batch.device).unsqueeze(0).expand(bs, -1, -1))
+        if self.args.obs_agent_id: # True for QMix
+            inputs.append(th.eye(self.n_agents, device=batch.device).unsqueeze(0).expand(bs, -1, -1)) #onehot agent ID
 
+        #inputs[i]: (bs,n,n)
         inputs = th.cat([x.reshape(bs*self.n_agents, -1) for x in inputs], dim=1)
+        #inputs[i]: (bs*n,n); ==> (bs*n,3n) i.e. (bs*n,(obs+act+id))
         return inputs
 
     def _get_input_shape(self, scheme):

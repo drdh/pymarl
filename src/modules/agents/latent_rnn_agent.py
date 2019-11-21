@@ -16,9 +16,10 @@ class LatentRNNAgent(nn.Module):
         return self.fc1.weight.new(1, self.args.rnn_hidden_dim).zero_()
 
     def forward(self, inputs, hidden_state):
-        x = F.relu(self.fc1(inputs))
-        h_in = hidden_state.reshape(-1, self.args.rnn_hidden_dim)
+        x = F.relu(self.fc1(inputs)) #(bs*n,(obs+act+id))
+        h_in = hidden_state.reshape(-1, self.args.rnn_hidden_dim) # (bs,n,dim) ==> (bs*n, dim)
         h = self.rnn(x, h_in)
         q = self.fc2(h)
         return q, h
+        #(bs*n,n_actions), (bs*n,hidden_dim)
 # TODO: complete it
