@@ -28,3 +28,5 @@ agent: "latent_rnn"
 mac: "separate_mac"
 
 rnn_latent_dim: 2
+
+use_tensorboard: True

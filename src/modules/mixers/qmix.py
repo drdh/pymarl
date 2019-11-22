@@ -25,6 +25,7 @@ class QMixer(nn.Module):
                                nn.ReLU(),
                                nn.Linear(self.embed_dim, 1))
 
+                    #(bs,t,n),
     def forward(self, agent_qs, states):
         bs = agent_qs.size(0)
         states = states.reshape(-1, self.state_dim)
@@ -35,6 +36,7 @@ class QMixer(nn.Module):
         w1 = w1.view(-1, self.n_agents, self.embed_dim)
         b1 = b1.view(-1, 1, self.embed_dim)
         hidden = F.elu(th.bmm(agent_qs, w1) + b1)
+
         # Second layer
         w_final = th.abs(self.hyper_w_final(states))
         w_final = w_final.view(-1, self.embed_dim, 1)
@@ -44,4 +46,4 @@ class QMixer(nn.Module):
         y = th.bmm(hidden, w_final) + v
         # Reshape and return
         q_tot = y.view(bs, -1, 1)
-        return q_tot
+        return q_tot #(bs,t,1)

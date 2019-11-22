@@ -1,7 +1,7 @@
 import copy
-from ..components.episode_buffer import EpisodeBatch
-from ..modules.mixers.vdn import VDNMixer
-from ..modules.mixers.qmix import QMixer
+from components.episode_buffer import EpisodeBatch
+from modules.mixers.vdn import VDNMixer
+from modules.mixers.qmix import QMixer
 import torch as th
 from torch.optim import RMSprop
 
@@ -50,9 +50,11 @@ class QLearner:
             agent_outs = self.mac.forward(batch, t=t)
             mac_out.append(agent_outs)
         mac_out = th.stack(mac_out, dim=1)  # Concat over time
+        #(bs,t,n,n_actions), Q values of n_actions
 
         # Pick the Q-Values for the actions taken by each agent
         chosen_action_qvals = th.gather(mac_out[:, :-1], dim=3, index=actions).squeeze(3)  # Remove the last dim
+        # (bs,t,n) Q value of an action
 
         # Calculate the Q-Values necessary for the target
         target_mac_out = []
@@ -71,10 +73,13 @@ class QLearner:
         # Max over target Q-Values
         if self.args.double_q: # True for QMix
             # Get actions that maximise live Q (for double q-learning)
-            mac_out_detach = mac_out.clone().detach()
+            mac_out_detach = mac_out.clone().detach() #return a new Tensor, detached from the current graph
             mac_out_detach[avail_actions == 0] = -9999999
-            cur_max_actions = mac_out_detach[:, 1:].max(dim=3, keepdim=True)[1]
+                            # (bs,t,n,n_actions), discard t=0
+            cur_max_actions = mac_out_detach[:, 1:].max(dim=3, keepdim=True)[1] # indices instead of values
+            # (bs,t,n,1)
             target_max_qvals = th.gather(target_mac_out, 3, cur_max_actions).squeeze(3)
+            # (bs,t,n,n_actions) ==> (bs,t,n,1) ==> (bs,t,n) max target-Q
         else:
             target_max_qvals = target_mac_out.max(dim=3)[0]
 
@@ -82,12 +87,14 @@ class QLearner:
         if self.mixer is not None:
             chosen_action_qvals = self.mixer(chosen_action_qvals, batch["state"][:, :-1])
             target_max_qvals = self.target_mixer(target_max_qvals, batch["state"][:, 1:])
+            # (bs,t,1)
 
         # Calculate 1-step Q-Learning targets
         targets = rewards + self.args.gamma * (1 - terminated) * target_max_qvals
 
         # Td-error
-        td_error = (chosen_action_qvals - targets.detach())
+        td_error = (chosen_action_qvals - targets.detach()) # no gradient through target net
+        # (bs,t,1)
 
         mask = mask.expand_as(td_error)
 
@@ -100,7 +107,7 @@ class QLearner:
         # Optimise
         self.optimiser.zero_grad()
         loss.backward()
-        grad_norm = th.nn.utils.clip_grad_norm_(self.params, self.args.grad_norm_clip)
+        grad_norm = th.nn.utils.clip_grad_norm_(self.params, self.args.grad_norm_clip)# max_norm
         self.optimiser.step()
 
         if (episode_num - self.last_target_update_episode) / self.args.target_update_interval >= 1.0:
