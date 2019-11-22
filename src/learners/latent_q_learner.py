@@ -9,7 +9,7 @@ import numpy as np
 
 class LatentQLearner(QLearner):
     def __init__(self, mac, scheme, logger, args):
-        super(LatentQLearner,self).__init__()
+        super(LatentQLearner,self).__init__(mac, scheme, logger, args)
         self.args = args
         self.mac = mac
         self.logger = logger

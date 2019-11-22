@@ -31,4 +31,4 @@ latent_dim: 2
 entropy_loss_weight : 0.01
 
 use_tensorboard: True
-#use_cuda: False
+use_cuda: False

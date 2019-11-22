@@ -89,6 +89,7 @@ class ParallelRunner:
         episode_returns = [0 for _ in range(self.batch_size)]
         episode_lengths = [0 for _ in range(self.batch_size)]
         self.mac.init_hidden(batch_size=self.batch_size)
+        self.mac.init_latent(batch_size=self.batch_size)
         terminated = [False for _ in range(self.batch_size)]
         envs_not_terminated = [b_idx for b_idx, termed in enumerate(terminated) if not termed]
         final_env_infos = []  # may store extra stats like battle won. this is filled in ORDER OF TERMINATION
