@@ -118,7 +118,7 @@ class LatentQLearner(QLearner):
         loss = (masked_td_error ** 2).sum() / mask.sum()
 
         # entropy loss TODO: change to real entropy
-        mac_out_latent_norm=th.sqrt(th.sum(mac_out_latent*mac_out_latent,axis=1))
+        mac_out_latent_norm=th.sqrt(th.sum(mac_out_latent*mac_out_latent,dim=1))
         mac_out_latent=mac_out_latent/mac_out_latent_norm[:,None]
         loss+=(th.norm(mac_out_latent)/mac_out_latent.size(0))*self.args.entropy_loss_weight
 
