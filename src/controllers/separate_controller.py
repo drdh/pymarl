@@ -59,7 +59,7 @@ class SeparateMAC(BasicMAC):
         return agent_outs.view(ep_batch.batch_size, self.n_agents, -1)  #(bs,n,n_actions)
 
     def init_hidden(self, batch_size):
-        self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, -1)  # (bs,n,hidden_dim)
+        self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, -1)  #  (bs,n,hidden_dim)
 
     #for SeparateMAC
     def init_latent(self, batch_size):
