@@ -3,6 +3,7 @@ from components.action_selectors import REGISTRY as action_REGISTRY
 from .basic_controller import BasicMAC
 import torch as th
 
+
 #multi-agent controller with separete parameters for each agent.
 class SeparateMAC(BasicMAC):
     def __init__(self,scheme, groups, args):
@@ -18,7 +19,7 @@ class SeparateMAC(BasicMAC):
         self.hidden_states = None
 
         # for SeparateMAC
-        self.role_latents = None
+        self.latents = None
 
     def select_actions(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False):
         # Only select actions for the selected batch elements in bs
@@ -30,9 +31,11 @@ class SeparateMAC(BasicMAC):
     def forward(self, ep_batch, t, test_mode=False):
         agent_inputs = self._build_inputs(ep_batch, t) # (bs*n,(obs+act+id))
         avail_actions = ep_batch["avail_actions"][:, t]
-                                                # (bs*n,(obs+act+id)), (bs,n,hidden_size)
-        agent_outs, self.hidden_states = self.agent(agent_inputs, self.hidden_states)
-        #(bs*n,n_actions), (bs*n,hidden_dim)
+                                                            # (bs*n,(obs+act+id)), (bs,n,hidden_size), (bs,n,latent_dim)
+        agent_outs, self.hidden_states = self.agent(agent_inputs, self.hidden_states, self.latents)
+        # (bs*n,n_actions), (bs*n,hidden_dim), (bs*n,latent_dim)
+        self.latents=self.latents.reshape(ep_batch.batch_size,self.n_agents,self.args.latent_dim)
+
         # Softmax the agent outputs if they're policy logits
         if self.agent_output_type == "pi_logits":  # q for QMix. Ignored
 
@@ -56,14 +59,15 @@ class SeparateMAC(BasicMAC):
                     # Zero out the unavailable actions
                     agent_outs[reshaped_avail_actions == 0] = 0.0
 
-        return agent_outs.view(ep_batch.batch_size, self.n_agents, -1)  #(bs,n,n_actions)
+        return agent_outs.view(ep_batch.batch_size, self.n_agents, -1), self.latents
+                    # (bs,n,n_actions), (bs,n,latent_dim)
 
     def init_hidden(self, batch_size):
-        self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, -1)  #  (bs,n,hidden_dim)
+        self.hidden_states = th.zeros(batch_size,self.n_agents,self.args.rnn_hidden_dim)  #  (bs,n,hidden_dim)
 
     #for SeparateMAC
     def init_latent(self, batch_size):
-        self.role_latents = th.randn(self.n_agents, self.args.latent_dim).unsqueeze(0).expand(batch_size,self.n_agents,-1) #(bs,n,latent_dim)
+        self.latents = th.randn(self.n_agents, self.args.latent_dim,requires_grad=True).unsqueeze(0).expand(batch_size,self.n_agents,-1) #(bs,n,latent_dim)
 
     def parameters(self):
         return self.agent.parameters()
@@ -111,5 +115,3 @@ class SeparateMAC(BasicMAC):
 
         return input_shape
 
-
-#TODO: complete it.
