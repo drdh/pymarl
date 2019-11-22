@@ -15,6 +15,7 @@ class LatentRNNAgent(nn.Module):
         # make hidden states on same device as model
         return self.fc1.weight.new(1, self.args.rnn_hidden_dim).zero_()
 
+                    # (bs*n,(obs+act+id)), (bs,n,hidden_size)
     def forward(self, inputs, hidden_state):
         x = F.relu(self.fc1(inputs)) #(bs*n,(obs+act+id)) at time t
         h_in = hidden_state.reshape(-1, self.args.rnn_hidden_dim) # (bs,n,dim) ==> (bs*n, dim)

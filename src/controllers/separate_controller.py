@@ -63,7 +63,7 @@ class SeparateMAC(BasicMAC):
 
     #for SeparateMAC
     def init_latent(self, batch_size):
-        self.role_latents = th.randn(batch_size, self.n_agents, self.args.latent_dim) #(bs,n,latent_dim)
+        self.role_latents = th.randn(self.n_agents, self.args.latent_dim).unsqueeze(0).expand(batch_size,self.n_agents,-1) #(bs,n,latent_dim)
 
     def parameters(self):
         return self.agent.parameters()

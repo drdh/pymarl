@@ -2,12 +2,13 @@ import copy
 from components.episode_buffer import EpisodeBatch
 from modules.mixers.vdn import VDNMixer
 from modules.mixers.qmix import QMixer
+from .q_learner import QLearner
 import torch as th
 from torch.optim import RMSprop
 
-
-class QLearner:
+class LatentQLearner(QLearner):
     def __init__(self, mac, scheme, logger, args):
+        super(LatentQLearner,self).__init__()
         self.args = args
         self.mac = mac
         self.logger = logger
@@ -45,11 +46,15 @@ class QLearner:
 
         # Calculate estimated Q-Values
         mac_out = []
+        mac_out_latent=[]
         self.mac.init_hidden(batch.batch_size)
+        self.mac.init_latent(batch.batch_size)
 
         for t in range(batch.max_seq_length):
-            agent_outs = self.mac.forward(batch, t=t) #(bs,n,n_actions)
+            agent_outs, agent_outs_latent = self.mac.forward(batch, t=t) #(bs,n,n_actions),(bs,n,latent_dim)
             mac_out.append(agent_outs) #[t,(bs,n,n_actions)]
+            mac_out_latent.append((agent_outs_latent)) #[t,(bs,n,latent_dim)]
+
         mac_out = th.stack(mac_out, dim=1)  # Concat over time
         #(bs,t,n,n_actions), Q values of n_actions
 
@@ -59,11 +64,14 @@ class QLearner:
 
         # Calculate the Q-Values necessary for the target
         target_mac_out = []
+        target_mac_out_latent=[]
         self.target_mac.init_hidden(batch.batch_size) # (bs,n,hidden_size)
+        self.target_mac.init_latent(batch.batch_size) # (bs,n,latent_size)
 
         for t in range(batch.max_seq_length):
-            target_agent_outs = self.target_mac.forward(batch, t=t) #(bs,n,n_actions)
+            target_agent_outs,target_agent_outs_latent = self.target_mac.forward(batch, t=t) #(bs,n,n_actions), (bs,n,latent_dim)
             target_mac_out.append(target_agent_outs) #[t,(bs,n,n_actions)]
+            target_mac_out_latent.append(target_agent_outs_latent) #[t,(bs,n,latent_dim)]
 
         # We don't need the first timesteps Q-Value estimate for calculating targets
         target_mac_out = th.stack(target_mac_out[1:], dim=1)  # Concat across time, dim=1 is time index
