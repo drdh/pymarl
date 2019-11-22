@@ -30,3 +30,4 @@ mac: "separate_mac"
 rnn_latent_dim: 2
 
 use_tensorboard: True
+use_cuda: False
