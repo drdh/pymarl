@@ -17,6 +17,9 @@ class SeparateMAC(BasicMAC):
 
         self.hidden_states = None
 
+        # for SeparateMAC
+        self.role_latents = None
+
     def select_actions(self, ep_batch, t_ep, t_env, bs=slice(None), test_mode=False):
         # Only select actions for the selected batch elements in bs
         avail_actions = ep_batch["avail_actions"][:, t_ep]
@@ -56,7 +59,11 @@ class SeparateMAC(BasicMAC):
         return agent_outs.view(ep_batch.batch_size, self.n_agents, -1)  #(bs,n,n_actions)
 
     def init_hidden(self, batch_size):
-        self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, -1)  # bav
+        self.hidden_states = self.agent.init_hidden().unsqueeze(0).expand(batch_size, self.n_agents, -1)  # (bs,n,hidden_dim)
+
+    #for SeparateMAC
+    def init_latent(self, batch_size):
+        self.role_latents = th.randn(batch_size, self.n_agents, self.args.latent_dim) #(bs,n,latent_dim)
 
     def parameters(self):
         return self.agent.parameters()

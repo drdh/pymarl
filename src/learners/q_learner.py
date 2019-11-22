@@ -46,6 +46,9 @@ class QLearner:
         # Calculate estimated Q-Values
         mac_out = []
         self.mac.init_hidden(batch.batch_size)
+        if self.args.mac == 'separate_mac':
+            self.mac.init_latent(batch.batch_size)
+
         for t in range(batch.max_seq_length):
             agent_outs = self.mac.forward(batch, t=t)
             mac_out.append(agent_outs)
@@ -59,6 +62,9 @@ class QLearner:
         # Calculate the Q-Values necessary for the target
         target_mac_out = []
         self.target_mac.init_hidden(batch.batch_size) # (bs,n,hidden_size)
+        if self.args.mac == 'separate_mac':
+            self.mac.init_latent(batch.batch_size)
+
         for t in range(batch.max_seq_length):
             target_agent_outs = self.target_mac.forward(batch, t=t) #(bs,n,n_actions)
             target_mac_out.append(target_agent_outs) #[t,(bs,n,n_actions)]
