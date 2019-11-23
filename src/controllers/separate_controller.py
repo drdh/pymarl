@@ -32,9 +32,9 @@ class SeparateMAC(BasicMAC):
         agent_inputs = self._build_inputs(ep_batch, t) # (bs*n,(obs+act+id))
         avail_actions = ep_batch["avail_actions"][:, t]
                                                             # (bs*n,(obs+act+id)), (bs,n,hidden_size), (bs,n,latent_dim)
-        agent_outs, self.hidden_states = self.agent.forward(agent_inputs, self.hidden_states, self.latents)
+        agent_outs, self.hidden_states,self.latents = self.agent.forward(agent_inputs, self.hidden_states)
         # (bs*n,n_actions), (bs*n,hidden_dim), (bs*n,latent_dim)
-        self.latents=self.latents.reshape(ep_batch.batch_size,self.n_agents,self.args.latent_dim)
+        self.latents=self.latents.reshape(ep_batch.batch_size,self.n_agents,self.args.latent_dim) #(bs,n,latent_dim)
 
         # Softmax the agent outputs if they're policy logits
         if self.agent_output_type == "pi_logits":  # q for QMix. Ignored
@@ -67,7 +67,8 @@ class SeparateMAC(BasicMAC):
 
     #for SeparateMAC
     def init_latent(self, batch_size):
-        self.latents = th.randn(self.n_agents, self.args.latent_dim,requires_grad=True).unsqueeze(0).expand(batch_size,self.n_agents,-1) #(bs,n,latent_dim)
+        return self.agent.init_latent(batch_size)
+        #self.latents = th.randn(self.n_agents, self.args.latent_dim,requires_grad=True).unsqueeze(0).expand(batch_size,self.n_agents,-1) #(bs,n,latent_dim)
 
     def parameters(self):
         return self.agent.parameters()

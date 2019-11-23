@@ -47,14 +47,14 @@ class LatentQLearner(QLearner):
 
         # Calculate estimated Q-Values
         mac_out = []
-        mac_out_latent=[]
+
         self.mac.init_hidden(batch.batch_size)
-        self.mac.init_latent(batch.batch_size)
+        mac_loss=self.mac.init_latent(batch.batch_size)
 
         for t in range(batch.max_seq_length):
             agent_outs,  agent_outs_latent= self.mac.forward(batch, t=t) #(bs,n,n_actions),(bs,n,latent_dim)
             mac_out.append(agent_outs) #[t,(bs,n,n_actions)]
-            mac_out_latent.append((agent_outs_latent)) #[t,(bs,n,latent_dim)]
+            #mac_out_latent.append((agent_outs_latent)) #[t,(bs,n,latent_dim)]
 
         mac_out = th.stack(mac_out, dim=1)  # Concat over time
         #(bs,t,n,n_actions), Q values of n_actions
@@ -118,9 +118,10 @@ class LatentQLearner(QLearner):
         loss = (masked_td_error ** 2).sum() / mask.sum()
 
         # entropy loss TODO: change to real entropy
-        mac_out_latent_norm=th.sqrt(th.sum(mac_out_latent*mac_out_latent,dim=1))
-        mac_out_latent=mac_out_latent/mac_out_latent_norm[:,None]
-        loss+=(th.norm(mac_out_latent)/mac_out_latent.size(0))*self.args.entropy_loss_weight
+        #mac_out_latent_norm=th.sqrt(th.sum(mac_out_latent*mac_out_latent,dim=1))
+        #mac_out_latent=mac_out_latent/mac_out_latent_norm[:,None]
+        #loss+=(th.norm(mac_out_latent)/mac_out_latent.size(0))*self.args.entropy_loss_weight
+        loss+=mac_loss*self.args.entropy_loss_weight
 
         # Optimise
         self.optimiser.zero_grad()
