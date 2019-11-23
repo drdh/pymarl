@@ -52,16 +52,16 @@ class LatentQLearner(QLearner):
         mac_loss=self.mac.init_latent(batch.batch_size)
 
         for t in range(batch.max_seq_length):
-            agent_outs,  agent_outs_latent= self.mac.forward(batch, t=t) #(bs,n,n_actions),(bs,n,latent_dim)
+            agent_outs= self.mac.forward(batch, t=t) #(bs,n,n_actions),(bs,n,latent_dim)
             mac_out.append(agent_outs) #[t,(bs,n,n_actions)]
             #mac_out_latent.append((agent_outs_latent)) #[t,(bs,n,latent_dim)]
 
         mac_out = th.stack(mac_out, dim=1)  # Concat over time
         #(bs,t,n,n_actions), Q values of n_actions
 
-        mac_out_latent=th.stack(mac_out_latent,dim=1)
+        #mac_out_latent=th.stack(mac_out_latent,dim=1)
         # (bs,t,n,latent_dim)
-        mac_out_latent=mac_out_latent.reshape(-1,self.args.latent_dim)
+        #mac_out_latent=mac_out_latent.reshape(-1,self.args.latent_dim)
 
         # Pick the Q-Values for the actions taken by each agent
         chosen_action_qvals = th.gather(mac_out[:, :-1], dim=3, index=actions).squeeze(3)  # Remove the last dim
@@ -73,7 +73,7 @@ class LatentQLearner(QLearner):
         self.target_mac.init_latent(batch.batch_size) # (bs,n,latent_size)
 
         for t in range(batch.max_seq_length):
-            target_agent_outs,target_mac_outs_latent = self.target_mac.forward(batch, t=t) #(bs,n,n_actions), (bs,n,latent_dim)
+            target_agent_outs= self.target_mac.forward(batch, t=t) #(bs,n,n_actions), (bs,n,latent_dim)
             target_mac_out.append(target_agent_outs) #[t,(bs,n,n_actions)]
 
         # We don't need the first timesteps Q-Value estimate for calculating targets

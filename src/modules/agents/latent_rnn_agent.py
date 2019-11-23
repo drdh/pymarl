@@ -99,5 +99,5 @@ class LatentRNNAgent(nn.Module):
         #h_in = hidden_state.reshape(-1, self.args.rnn_hidden_dim) # (bs,n,dim) ==> (bs*n, dim)
         #h = self.rnn(x, h_in)
         #q = self.fc2(h)
-        return q.view(-1,self.args.n_actions), h.view(-1,self.args.rnn_hidden_dim),
+        return q.view(-1,self.args.n_actions), h.view(-1,self.args.rnn_hidden_dim)
         # (bs*n,n_actions), (bs*n,hidden_dim), (bs*n,latent_dim)
