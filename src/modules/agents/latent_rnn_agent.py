@@ -8,12 +8,14 @@ class LatentRNNAgent(nn.Module):
         super(LatentRNNAgent, self).__init__()
         self.args = args
         self.input_shape=input_shape
+        self.n_agents=args.n_agents
+        self.latent_dim=args.latent_dim
 
-        pi_param = th.rand(args.n_agent)
+        pi_param = th.rand(args.n_agents)
         pi_param = pi_param / pi_param.sum()
         self.pi_param = nn.Parameter(pi_param)
 
-        mu_param = th.randn(args.n_agent, args.latent_dim)
+        mu_param = th.randn(args.n_agents, args.latent_dim)
         mu_param = mu_param / mu_param.norm(dim=0)
         self.mu_param = nn.Parameter(mu_param)
 
@@ -35,11 +37,11 @@ class LatentRNNAgent(nn.Module):
 
 
     def init_latent(self,bs):
-        u = th.rand(self.n_agent, self.n_agent)
+        u = th.rand(self.n_agents, self.n_agents)
         g = - th.log(- th.log(u))
         c = (g + th.log(self.pi_param)).argmax(dim=1)
 
-        self.latent = (self.mu_param[c] + th.randn_like(self.mu_param)).unsqueeze(0).expand(bs, self.n_agent,
+        self.latent = (self.mu_param[c] + th.randn_like(self.mu_param)).unsqueeze(0).expand(bs, self.n_agents,
                                                                                             self.latent_dim).reshape(-1,
                                                                                                                      self.latent_dim)
         self.latent = self.latent / self.latent.norm(dim=0)
