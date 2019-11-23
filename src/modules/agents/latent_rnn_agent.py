@@ -39,7 +39,9 @@ class LatentRNNAgent(nn.Module):
     def init_latent(self,bs):
         self.latent=(self.mu_param + th.rand_like(self.mu_param)).unsqueeze(0).expand(bs,self.n_agents,self.latent_dim).reshape(-1,self.latent_dim)
 
-        loss=th.stack([(self.mu_param-th.tensor([-5]*self.latent_dim)).norm(dim=1),(self.mu_param-th.tensor([5]*self.latent_dim)).norm(dim=1)]).min(dim=0)[0].sum()
+        KL_neg=(self.mu_param-th.tensor([-5.0]*self.latent_dim)).norm(dim=1)
+        KL_pos=(self.mu_param-th.tensor([ 5.0]*self.latent_dim)).norm(dim=1)
+        loss=th.stack([KL_neg,KL_pos]).min(dim=0)[0].sum()
 
         return loss
 
@@ -86,7 +88,7 @@ class LatentRNNAgent(nn.Module):
         fc2_b=fc2_b.reshape((-1,1,self.args.n_actions))
 
         x=F.relu(th.bmm(inputs,fc1_w)+fc1_b) #(bs*n,(obs+act+id)) at time t
-        x=x.reshape(-1,self.args.rnn_hidden_dim)
+
 
         #gi=th.bmm(x,rnn_ih_w)+rnn_ih_b
         #gh=th.bmm(h_in,rnn_hh_w)+rnn_hh_b
@@ -98,6 +100,8 @@ class LatentRNNAgent(nn.Module):
         #newgate=th.tanh(i_n+resetgate*h_n)
         #h=newgate+inputgate*(h_in-newgate)
         #h=th.tanh(gi+gh)
+
+        x=x.reshape(-1,self.args.rnn_hidden_dim)
         h = self.rnn(x, h_in)
         h=h.reshape(-1,1,self.args.rnn_hidden_dim)
 
