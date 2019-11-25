@@ -49,7 +49,7 @@ class LatentQLearner(QLearner):
         mac_out = []
 
         self.mac.init_hidden(batch.batch_size)
-        mac_loss=self.mac.init_latent(batch.batch_size)
+        mac_loss,mu_param=self.mac.init_latent(batch.batch_size)
 
         for t in range(batch.max_seq_length):
             agent_outs= self.mac.forward(batch, t=t) #(bs,n,n_actions),(bs,n,latent_dim)
@@ -140,6 +140,10 @@ class LatentQLearner(QLearner):
             self.logger.log_stat("td_error_abs", (masked_td_error.abs().sum().item()/mask_elems), t_env)
             self.logger.log_stat("q_taken_mean", (chosen_action_qvals * mask).sum().item()/(mask_elems * self.args.n_agents), t_env)
             self.logger.log_stat("target_mean", (targets * mask).sum().item()/(mask_elems * self.args.n_agents), t_env)
+
+            if self.args.use_tensorboard:
+                self.logger.log_vec(mu_param,list(range(self.args.n_agents)),t_env,"latent")
+
             self.log_stats_t = t_env
 
     def _update_targets(self):

@@ -31,7 +31,7 @@ class LatentInputRNNAgent(nn.Module):
         KL_pos=(self.mu_param-th.tensor([ 5.0]*self.latent_dim)).norm(dim=1)
         loss=th.stack([KL_neg,KL_pos]).min(dim=0)[0].sum()
 
-        return loss
+        return loss,self.mu_param.data.detach()
 
         #u = th.rand(self.n_agents, self.n_agents)
         #g = - th.log(- th.log(u))
