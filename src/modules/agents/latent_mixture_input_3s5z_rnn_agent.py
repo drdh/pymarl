@@ -3,20 +3,20 @@ import torch.nn.functional as F
 import torch as th
 
 
-class LatentMixtureInputRNNAgent(nn.Module):
+class LatentMixtureInput3s5zRNNAgent(nn.Module):
     def __init__(self, input_shape, args):
-        super(LatentMixtureInputRNNAgent, self).__init__()
+        super(LatentMixtureInput3s5zRNNAgent, self).__init__()
         self.args = args
         self.input_shape=input_shape
         self.n_agents=args.n_agents
         self.latent_dim=args.latent_dim
 
         pi_param = th.rand(args.n_agents)
-        #pi_param = pi_param / pi_param.sum()
+        pi_param = pi_param / pi_param.sum()
         self.pi_param = nn.Parameter(pi_param)
 
         mu_param = th.randn(args.n_agents, args.latent_dim)
-        #mu_param = mu_param / mu_param.norm(dim=0)
+        mu_param = mu_param / mu_param.norm(dim=0)
         self.mu_param = nn.Parameter(mu_param)
 
         self.fc1 = nn.Linear(input_shape+self.latent_dim, args.rnn_hidden_dim)
@@ -31,25 +31,24 @@ class LatentMixtureInputRNNAgent(nn.Module):
         #KL_pos=(self.mu_param-th.tensor([ 5.0]*self.latent_dim)).norm(dim=1)
         #loss=th.stack([KL_neg,KL_pos]).min(dim=0)[0].sum()
 
-        pi_param=self.pi_param / self.pi_param.sum()
-        mu_param = self.mu_param / self.mu_param.norm(dim=0)
+
 
         u = th.rand(self.n_agents, self.n_agents)
         g = - th.log(- th.log(u))
-        c = (g + th.log(pi_param)).argmax(dim=1)
+        c = (g + th.log(self.pi_param)).argmax(dim=1)
 
-        self.latent = (mu_param[c] + th.randn_like(mu_param)).unsqueeze(0).expand(bs, self.n_agents,
+        self.latent = (self.mu_param[c] + th.randn_like(self.mu_param)).unsqueeze(0).expand(bs, self.n_agents,
                                                                                             self.latent_dim).reshape(-1,
                                                                                                                      self.latent_dim)
         # (bs*n,latent_dim)
 
         self.latent = self.latent / self.latent.norm(dim=0)
 
-        mu_distance = (mu_param.unsqueeze(1) - mu_param.unsqueeze(0)).norm(dim=2)
-        distance_weight = pi_param.unsqueeze(0) + pi_param.unsqueeze(1)
+        mu_distance = (self.mu_param.unsqueeze(1) - self.mu_param.unsqueeze(0)).norm(dim=2)
+        distance_weight = self.pi_param.unsqueeze(0) + self.pi_param.unsqueeze(1)
         loss = (distance_weight * mu_distance).sum()
 
-        return loss,mu_param.data.detach()
+        return loss,self.mu_param.data.detach()
 
         # (bs*n,(obs+act+id)), (bs,n,hidden_dim)
     def forward(self, inputs, hidden_state):
