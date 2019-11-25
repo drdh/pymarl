@@ -19,8 +19,8 @@ class Logger:
         self.tb_logger = log_value
         self.use_tb = True
 
-        from torch.utils.tensorboard import SummaryWriter
-        self.writer=SummaryWriter("latents-"+directory_name)
+        from tensorboardX import SummaryWriter
+        self.writer=SummaryWriter(directory_name+"-latent")
 
     def setup_sacred(self, sacred_run_dict):
         self.sacred_info = sacred_run_dict.info

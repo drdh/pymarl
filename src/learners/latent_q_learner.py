@@ -142,6 +142,7 @@ class LatentQLearner(QLearner):
             self.logger.log_stat("target_mean", (targets * mask).sum().item()/(mask_elems * self.args.n_agents), t_env)
 
             if self.args.use_tensorboard:
+                #log_vec(self,mat,metadata,label_img,global_step,tag)
                 self.logger.log_vec(mu_param,list(range(self.args.n_agents)),t_env,"latent")
 
             self.log_stats_t = t_env
