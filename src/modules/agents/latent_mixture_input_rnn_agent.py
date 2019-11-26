@@ -22,6 +22,10 @@ class LatentMixtureInputRNNAgent(nn.Module):
         preference = th.randn(args.n_agents, args.latent_dim)
         self.preference = nn.Parameter(preference)
 
+        self.latent=None
+
+        self.fc_latent=nn.Linear(args.latent_dim*args.n_agents,args.latent_dim*args.n_agents)
+
         self.fc1 = nn.Linear(input_shape+self.latent_dim, args.rnn_hidden_dim)
         self.rnn = nn.GRUCell(args.rnn_hidden_dim, args.rnn_hidden_dim)
         self.fc2 = nn.Linear(args.rnn_hidden_dim, args.n_actions)
@@ -44,11 +48,21 @@ class LatentMixtureInputRNNAgent(nn.Module):
 
         task_role = (mu_param[c] + th.randn_like(mu_param)*(1.0/self.n_agents)) #(n,latent_dim)
         #task_role = mu_param[c]
-                   #      (n,1,latent_dim)            # (1,n,latent_dim)
-        index = (preference.unsqueeze(1) * task_role.unsqueeze(0)).norm(dim=2).max(dim=1)[1]
-        # (n,n,2) => (n,n) ==> (n,)
 
-        self.latent = task_role[index].unsqueeze(0).expand(bs, self.n_agents,
+        if self.args.assign_net:                #(1,n*latent_dim)
+            self.latent = (self.fc_latent(task_role.reshape(1,-1))).reshape(self.args.n_agents,self.args.latent_dim)
+            #(n,latent_dim)
+            self.latent = self.latent/ self.latent.norm(dim=1).unsqueeze(1)
+            self.latent = self.latent.unsqueeze(0).expand(bs, self.n_agents,
+                                                                            self.latent_dim).reshape(-1,
+                                                                                                      self.latent_dim)
+            # (bs*n,latent_dim)
+        else:
+                   #      (n,1,latent_dim)            # (1,n,latent_dim)
+            index = (preference.unsqueeze(1) * task_role.unsqueeze(0)).norm(dim=2).max(dim=1)[1]
+            # (n,n,2) => (n,n) ==> (n,)
+
+            self.latent = task_role[index].unsqueeze(0).expand(bs, self.n_agents,
                                                                             self.latent_dim).reshape(-1,
                                                                                                       self.latent_dim)
         #(bs*n, latent_dim)

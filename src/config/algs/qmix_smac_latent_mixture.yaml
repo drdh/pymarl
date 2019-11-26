@@ -25,6 +25,8 @@ mixing_embed_dim: 32
 name: "qmix_smac_latent_mixture_parallel"
 
 agent: "latent_mixture_rnn"
+assign_net: True
+
 mac: "separate_mac"
 
 latent_dim: 2
