@@ -19,6 +19,9 @@ class LatentMixtureInputRNNAgent(nn.Module):
         #mu_param = mu_param / mu_param.norm(dim=0)
         self.mu_param = nn.Parameter(mu_param)
 
+        preference = th.randn(args.n_agents, args.latent_dim)
+        self.preference = nn.Parameter(preference)
+
         self.fc1 = nn.Linear(input_shape+self.latent_dim, args.rnn_hidden_dim)
         self.rnn = nn.GRUCell(args.rnn_hidden_dim, args.rnn_hidden_dim)
         self.fc2 = nn.Linear(args.rnn_hidden_dim, args.n_actions)
@@ -32,22 +35,36 @@ class LatentMixtureInputRNNAgent(nn.Module):
         #loss=th.stack([KL_neg,KL_pos]).min(dim=0)[0].sum()
 
         pi_param=self.pi_param / self.pi_param.sum()
-        mu_param = self.mu_param / self.mu_param.norm(dim=0)
+        mu_param = self.mu_param / self.mu_param.norm(dim=1).unsqueeze(1)
+        preference = self.preference / self.preference.norm(dim=1).unsqueeze(1)
 
         u = th.rand(self.n_agents, self.n_agents)
         g = - th.log(- th.log(u))
         c = (g + th.log(pi_param)).argmax(dim=1)
 
-        self.latent = (mu_param[c] + th.randn_like(mu_param)).unsqueeze(0).expand(bs, self.n_agents,
-                                                                                            self.latent_dim).reshape(-1,
-                                                                                                                     self.latent_dim)
+        task_role = (mu_param[c] + th.randn_like(mu_param)*(1.0/self.n_agents)) #(n,latent_dim)
+        #task_role = mu_param[c]
+                   #      (n,1,latent_dim)            # (1,n,latent_dim)
+        index = (self.preference.unsqueeze(1) * task_role.unsqueeze(0)).norm(dim=2).max(dim=1)[1]
+        # (n,n,2) => (n,n) ==> (n,)
+
+        self.latent = task_role[index].unsqueeze(0).expand(bs, self.n_agents,
+                                                                            self.latent_dim).reshape(-1,
+                                                                                                      self.latent_dim)
+        #(bs*n, latent_dim)
+
+        loss= -(mu_param.norm(dim=1)*pi_param).sum() # KL, N(0,1)
+
+        #self.latent = (mu_param[c] + th.randn_like(mu_param)).unsqueeze(0).expand(bs, self.n_agents,
+        #                                                                                    self.latent_dim).reshape(-1,
+        #                                                                                                             self.latent_dim)
         # (bs*n,latent_dim)
 
-        self.latent = self.latent / self.latent.norm(dim=0)
+        #self.latent = self.latent / self.latent.norm(dim=0)
 
-        mu_distance = (mu_param.unsqueeze(1) - mu_param.unsqueeze(0)).norm(dim=2)
-        distance_weight = pi_param.unsqueeze(0) + pi_param.unsqueeze(1)
-        loss = (distance_weight * mu_distance).sum()
+        #mu_distance = (mu_param.unsqueeze(1) - mu_param.unsqueeze(0)).norm(dim=2)
+        #distance_weight = pi_param.unsqueeze(0) + pi_param.unsqueeze(1)
+        #loss = (distance_weight * mu_distance).sum()
 
         return loss,mu_param.data.detach()
 
