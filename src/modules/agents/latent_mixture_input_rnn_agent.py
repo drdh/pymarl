@@ -45,7 +45,7 @@ class LatentMixtureInputRNNAgent(nn.Module):
         task_role = (mu_param[c] + th.randn_like(mu_param)*(1.0/self.n_agents)) #(n,latent_dim)
         #task_role = mu_param[c]
                    #      (n,1,latent_dim)            # (1,n,latent_dim)
-        index = (self.preference.unsqueeze(1) * task_role.unsqueeze(0)).norm(dim=2).max(dim=1)[1]
+        index = (preference.unsqueeze(1) * task_role.unsqueeze(0)).norm(dim=2).max(dim=1)[1]
         # (n,n,2) => (n,n) ==> (n,)
 
         self.latent = task_role[index].unsqueeze(0).expand(bs, self.n_agents,
