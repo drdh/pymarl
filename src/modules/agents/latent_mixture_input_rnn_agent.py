@@ -66,7 +66,7 @@ class LatentMixtureInputRNNAgent(nn.Module):
         #distance_weight = pi_param.unsqueeze(0) + pi_param.unsqueeze(1)
         #loss = (distance_weight * mu_distance).sum()
 
-        return loss,mu_param.data.detach()
+        return loss,th.cat([pi_param.data.detach().reshape(-1,1),mu_param.data.detach()],dim=1)
 
         # (bs*n,(obs+act+id)), (bs,n,hidden_dim)
     def forward(self, inputs, hidden_state):
