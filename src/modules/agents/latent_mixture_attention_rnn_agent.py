@@ -55,7 +55,7 @@ class LatentMixtureAttentionRNNAgent(nn.Module):
         self.latent = self.fc_latent(self.mu_param.reshape((1,-1))).reshape(self.args.n_agents,self.args.latent_dim)
         #self.latent = self.latent / self.latent.norm(dim=1).unsqueeze(1)
         #self.latent = self.latent_dim + th.randn_like(self.latent) * (1.0 / self.args.n_agents)  # (n,latent_dim)
-        self.latent = self.latent_dim + th.randn_like(self.latent)
+        self.latent = self.latent + th.randn_like(self.latent)
         self.latent = self.latent.unsqueeze(0).expand(bs, self.n_agents,
                                                       self.latent_dim).reshape(-1,
                                                                                self.latent_dim)
