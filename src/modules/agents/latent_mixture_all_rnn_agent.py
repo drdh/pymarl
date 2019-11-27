@@ -68,7 +68,8 @@ class LatentMixtureAllRNNAgent(nn.Module):
         # (bs*n,(obs+act+id)), (bs,n,hidden_dim), (bs,n,latent_dim)
     def forward(self, inputs, hidden_state):
         inputs=inputs.reshape(-1,1,self.input_shape)
-        h_in=hidden_state.reshape(-1,self.args.rnn_hidden_dim) #(bs*n,hidden_dim)
+        h_in=hidden_state.reshape(-1,1, self.args.rnn_hidden_dim) #(bs*n,1, hidden_dim)
+        #h_in = hidden_state.reshape(-1, self.args.rnn_hidden_dim)  # (bs*n, hidden_dim)
         latent=self.latent.reshape(-1,1,self.args.latent_dim) # (bs*n,1,latent_dim)
 
         fc1_w=F.relu(self.fc1_w_nn(latent))
@@ -80,10 +81,10 @@ class LatentMixtureAllRNNAgent(nn.Module):
         rnn_ih_b=F.relu(self.rnn_ih_b_nn(latent))
         rnn_hh_w=F.relu(self.rnn_hh_w_nn(latent))
         rnn_hh_b=F.relu(self.rnn_hh_b_nn(latent))
-        rnn_ih_w=rnn_ih_w.reshape(-1,self.args.rnn_hidden_dim,self.args.rnn_hidden_dim)
-        rnn_ih_b=rnn_ih_b.reshape(-1,1,self.args.rnn_hidden_dim)
-        rnn_hh_w = rnn_hh_w.reshape(-1, self.args.rnn_hidden_dim, self.args.rnn_hidden_dim)
-        rnn_hh_b = rnn_hh_b.reshape(-1, 1, self.args.rnn_hidden_dim)
+        rnn_ih_w=rnn_ih_w.reshape(-1,self.args.rnn_hidden_dim,self.args.rnn_hidden_dim*3)
+        rnn_ih_b=rnn_ih_b.reshape(-1,1,self.args.rnn_hidden_dim*3)
+        rnn_hh_w = rnn_hh_w.reshape(-1, self.args.rnn_hidden_dim, self.args.rnn_hidden_dim*3)
+        rnn_hh_b = rnn_hh_b.reshape(-1, 1, self.args.rnn_hidden_dim*3)
 
         fc2_w=F.relu(self.fc2_w_nn(latent))
         fc2_b=F.relu(self.fc2_b_nn(latent))
