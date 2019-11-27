@@ -16,7 +16,7 @@ class MixtureRoleRNNAgent(nn.Module):
         self.pi_param = nn.Parameter(th.rand(args.n_agents,args.latent_dim)) #(n,latent_dim)
 
         self._fc1_w = nn.Parameter(th.randn(args.latent_dim, input_shape, args.rnn_hidden_dim))
-        self._fc1_b = nn.Parameter(th.randn(args.latent_dim, 1, args.latent_dim))
+        self._fc1_b = nn.Parameter(th.randn(args.latent_dim, 1, args.rnn_hidden_dim))
 
         self._rnn_ih_w=nn.Parameter(th.randn(args.latent_dim, args.rnn_hidden_dim, args.rnn_hidden_dim*3))
         self._rnn_ih_b=nn.Parameter(th.randn(args.latent_dim, 1, args.rnn_hidden_dim*3))
@@ -34,16 +34,16 @@ class MixtureRoleRNNAgent(nn.Module):
         g = - th.log(- th.log(u))
         c = (g + th.log(pi_param)).argmax(dim=1) #(n,)
 
-        self.fc1_w=self._fc1_w[c].unsqueeze(1)
-        self.fc1_b=self._fc1_b[c].unsqueeze(1)
+        self.fc1_w=self._fc1_w[c]
+        self.fc1_b=self._fc1_b[c]
 
-        self.rnn_ih_w=self._rnn_ih_w[c].unsqueeze(1)
-        self.rnn_ih_b=self._rnn_ih_b[c].unsqueeze(1)
-        self.rnn_hh_w=self._rnn_hh_w[c].unsqueeze(1)
-        self.rnn_hh_b=self._rnn_hh_b[c].unsqueeze(1)
+        self.rnn_ih_w=self._rnn_ih_w[c]
+        self.rnn_ih_b=self._rnn_ih_b[c]
+        self.rnn_hh_w=self._rnn_hh_w[c]
+        self.rnn_hh_b=self._rnn_hh_b[c]
 
-        self.fc2_w = self._fc2_w[c].unsqueeze(1)
-        self.fc2_b = self._fc2_b[c].unsqueeze(1)
+        self.fc2_w = self._fc2_w[c]
+        self.fc2_b = self._fc2_b[c]
 
         loss = -(pi_param*th.log(pi_param)).sum()
 
@@ -57,16 +57,16 @@ class MixtureRoleRNNAgent(nn.Module):
         q_all=[]
         h_all=[]
         for i in range(self.n_agents):
-            x = F.relu(th.bmm(inputs[i], self.fc1_w[i]) + self.fc1_b[i])
-            gi = th.bmm(x, self.rnn_ih_w[i]) + self.rnn_ih_b[i]
-            gh = th.bmm(h_in[i], self.rnn_hh_w[i]) + self.rnn_hh_b[i]
+            x = F.relu(inputs[i] @ self.fc1_w[i]+ self.fc1_b[i])
+            gi = x @ self.rnn_ih_w[i] + self.rnn_ih_b[i]
+            gh = h_in[i] @ self.rnn_hh_w[i] + self.rnn_hh_b[i]
             i_r, i_i, i_n = gi.chunk(3, 2)
             h_r, h_i, h_n = gh.chunk(3, 2)
             resetgate = th.sigmoid(i_r + h_r)
             inputgate = th.sigmoid(i_i + h_i)
             newgate = th.tanh(i_n + resetgate * h_n)
-            h = newgate + inputgate * (h_in - newgate)
-            q = F.relu(th.bmm(h, self.fc2_w[i]) + self.fc2_b[i])
+            h = newgate + inputgate * (h_in[i] - newgate)
+            q = F.relu(h @ self.fc2_w[i] + self.fc2_b[i])
 
             q_all.append(q)
             h_all.append(h)
