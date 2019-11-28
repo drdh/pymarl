@@ -10,6 +10,7 @@ class LatentMixtureAllRNNAgent(nn.Module):
         self.input_shape=input_shape
         self.n_agents=args.n_agents
         self.latent_dim=args.latent_dim
+        self.bs=0
 
         pi_param = th.rand(args.n_agents)
         # pi_param = pi_param / pi_param.sum()
@@ -40,6 +41,7 @@ class LatentMixtureAllRNNAgent(nn.Module):
 
 
     def init_latent(self,bs):
+        self.bs=bs
         pi_param = self.pi_param / self.pi_param.sum()
         mu_param = self.mu_param / self.mu_param.norm(dim=1).unsqueeze(1)
 
@@ -51,69 +53,82 @@ class LatentMixtureAllRNNAgent(nn.Module):
         # task_role = mu_param[c]
 
         task_role = th.tensor([
-            [5,5],
-            [5,5],
-            [5,5],
-            [-5,-5],
-            [-5,-5],
-            [-5,-5],
-            [-5,-5],
-            [-5,-5]
-        ],dtype=th.float)
-                                                #(1,n*latent_dim)
+            [5, 5],
+            [5, 5],
+            [5, 5],
+            [-5, -5],
+            [-5, -5],
+            [-5, -5],
+            [-5, -5],
+            [-5, -5]
+        ], dtype=th.float)
+
+        self.latent = task_role.reshape(self.args.n_agents, self.args.latent_dim)
+        # (n,latent_dim)
+        self.latent = self.latent / self.latent.norm(dim=1).unsqueeze(1)  # (n,latent_dim)
+
+        latent = self.latent.reshape(-1, 1, self.args.latent_dim)  # (n,1,latent_dim)
+
+        fc1_w = F.relu(self.fc1_w_nn(latent))
+        fc1_b = F.relu((self.fc1_b_nn(latent)))
+        self.fc1_w = fc1_w.reshape(-1, self.input_shape, self.args.rnn_hidden_dim)
+        self.fc1_b = fc1_b.reshape(-1, 1, self.args.rnn_hidden_dim)
+
+        rnn_ih_w = F.relu(self.rnn_ih_w_nn(latent))
+        rnn_ih_b = F.relu(self.rnn_ih_b_nn(latent))
+        rnn_hh_w = F.relu(self.rnn_hh_w_nn(latent))
+        rnn_hh_b = F.relu(self.rnn_hh_b_nn(latent))
+        self.rnn_ih_w = rnn_ih_w.reshape(-1, self.args.rnn_hidden_dim, self.args.rnn_hidden_dim * 3)
+        self.rnn_ih_b = rnn_ih_b.reshape(-1, 1, self.args.rnn_hidden_dim * 3)
+        self.rnn_hh_w = rnn_hh_w.reshape(-1, self.args.rnn_hidden_dim, self.args.rnn_hidden_dim * 3)
+        self.rnn_hh_b = rnn_hh_b.reshape(-1, 1, self.args.rnn_hidden_dim * 3)
+
+        fc2_w = F.relu(self.fc2_w_nn(latent))
+        fc2_b = F.relu(self.fc2_b_nn(latent))
+        self.fc2_w = fc2_w.reshape(-1, self.args.rnn_hidden_dim, self.args.n_actions)
+        self.fc2_b = fc2_b.reshape((-1, 1, self.args.n_actions))
+
+        #(1,n*latent_dim)
         #self.latent = (self.fc_latent(task_role.reshape(1,-1))).reshape(self.args.n_agents,self.args.latent_dim)
-        self.latent = task_role.reshape(self.args.n_agents,self.args.latent_dim)
+        #self.latent = task_role.reshape(self.args.n_agents,self.args.latent_dim)
         #(n,latent_dim)
-        self.latent = self.latent / self.latent.norm(dim=1).unsqueeze(1)
-        self.latent = self.latent.unsqueeze(0).expand(bs, self.n_agents,
-                                                                            self.latent_dim).reshape(-1,
-                                                                                                      self.latent_dim)
+        #self.latent = self.latent / self.latent.norm(dim=1).unsqueeze(1) #(n,latent_dim)
+        #self.latent = self.latent.unsqueeze(0).expand(bs, self.n_agents,
+        #                                                                    self.latent_dim).reshape(-1,
+        #                                                                                              self.latent_dim)
             # (bs*n,latent_dim)
         #loss = -(mu_param.norm(dim=1) * pi_param).sum()  # KL, N(0,1)
         loss=0
+
+
 
         return loss, th.cat([pi_param.data.detach().reshape(-1, 1), mu_param.data.detach()], dim=1)
 
         # (bs*n,(obs+act+id)), (bs,n,hidden_dim), (bs,n,latent_dim)
     def forward(self, inputs, hidden_state):
 
-        inputs = inputs.reshape(-1, 1, self.input_shape)
-        h_in = hidden_state.reshape(-1, 1, self.args.rnn_hidden_dim)  # (bs*n,1, hidden_dim)
-        latent = self.latent.reshape(-1, 1, self.args.latent_dim)  # (bs*n,1,latent_dim)
 
-        fc1_w=F.relu(self.fc1_w_nn(latent))
-        fc1_b=F.relu((self.fc1_b_nn(latent)))
-        fc1_w=fc1_w.reshape(-1,self.input_shape,self.args.rnn_hidden_dim)
-        fc1_b=fc1_b.reshape(-1,1,self.args.rnn_hidden_dim)
+        inputs = inputs.reshape(self.bs,self.n_agents, 1, self.input_shape)
+        h_in = hidden_state.reshape(self.bs,self.n_agents, 1, self.args.rnn_hidden_dim)  # (bs*n,1, hidden_dim)
 
-        rnn_ih_w=F.relu(self.rnn_ih_w_nn(latent))
-        rnn_ih_b=F.relu(self.rnn_ih_b_nn(latent))
-        rnn_hh_w=F.relu(self.rnn_hh_w_nn(latent))
-        rnn_hh_b=F.relu(self.rnn_hh_b_nn(latent))
-        rnn_ih_w=rnn_ih_w.reshape(-1,self.args.rnn_hidden_dim,self.args.rnn_hidden_dim*3)
-        rnn_ih_b=rnn_ih_b.reshape(-1,1,self.args.rnn_hidden_dim*3)
-        rnn_hh_w = rnn_hh_w.reshape(-1, self.args.rnn_hidden_dim, self.args.rnn_hidden_dim*3)
-        rnn_hh_b = rnn_hh_b.reshape(-1, 1, self.args.rnn_hidden_dim*3)
+        q_all = []
+        h_all = []
 
-        fc2_w=F.relu(self.fc2_w_nn(latent))
-        fc2_b=F.relu(self.fc2_b_nn(latent))
-        fc2_w=fc2_w.reshape(-1,self.args.rnn_hidden_dim,self.args.n_actions)
-        fc2_b=fc2_b.reshape((-1,1,self.args.n_actions))
+        for i in range(self.bs):
+            x=F.relu(th.bmm(inputs[i],self.fc1_w)+self.fc1_b) #(n,(obs+act+id)) at time t
+            gi=th.bmm(x,self.rnn_ih_w)+self.rnn_ih_b
+            gh=th.bmm(h_in[i],self.rnn_hh_w)+self.rnn_hh_b
+            i_r,i_i,i_n=gi.chunk(3,2)
+            h_r,h_i,h_n=gh.chunk(3,2)
 
+            resetgate=th.sigmoid(i_r+h_r)
+            inputgate=th.sigmoid(i_i+h_i)
+            newgate=th.tanh(i_n+resetgate*h_n)
+            h=newgate+inputgate*(h_in[i]-newgate)
+            q = F.relu(th.bmm(h, self.fc2_w) + self.fc2_b)
 
-        x=F.relu(th.bmm(inputs,fc1_w)+fc1_b) #(bs*n,(obs+act+id)) at time t
-
-        gi=th.bmm(x,rnn_ih_w)+rnn_ih_b
-        gh=th.bmm(h_in,rnn_hh_w)+rnn_hh_b
-        i_r,i_i,i_n=gi.chunk(3,2)
-        h_r,h_i,h_n=gh.chunk(3,2)
-
-        resetgate=th.sigmoid(i_r+h_r)
-        inputgate=th.sigmoid(i_i+h_i)
-        newgate=th.tanh(i_n+resetgate*h_n)
-        h=newgate+inputgate*(h_in-newgate)
-
-        q = F.relu(th.bmm(h, fc2_w) + fc2_b)
+            h_all.append(h)
+            q_all.append(q)
 
         # inputs = inputs.reshape(-1, self.input_shape)
         # h_in = hidden_state.reshape(-1, self.args.rnn_hidden_dim)  # (bs*n, hidden_dim)
@@ -128,5 +143,8 @@ class LatentMixtureAllRNNAgent(nn.Module):
         #h = self.rnn(x, h_in)
         #h = h.reshape(-1, 1, self.args.rnn_hidden_dim)
         #q = self.fc2(h)
+
+        q=th.stack(q_all,dim=0)
+        h=th.stack(h_all,dim=0)
         return q.view(-1,self.args.n_actions), h.view(-1,self.args.rnn_hidden_dim)
         # (bs*n,n_actions), (bs*n,hidden_dim), (bs*n,latent_dim)
