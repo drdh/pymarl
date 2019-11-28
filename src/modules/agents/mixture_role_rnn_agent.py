@@ -45,7 +45,8 @@ class MixtureRoleRNNAgent(nn.Module):
         self.fc2_w = self._fc2_w[c]
         self.fc2_b = self._fc2_b[c]
 
-        loss = -(pi_param*th.log(pi_param)).sum()
+        #loss = -(pi_param*th.log(pi_param)).sum()
+        loss = 0
 
         return loss, pi_param.data.detach()
 
