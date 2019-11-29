@@ -41,7 +41,7 @@ class LatentInputRNNAgent(nn.Module):
             [0, 1],
             [0, 1],
             [0, 1]
-        ]).unsqueeze(0).expand(bs,self.n_agents,self.latent_dim).reshape(-1,self.latent_dim)
+        ],dtype=th.float).unsqueeze(0).expand(bs,self.n_agents,self.latent_dim).reshape(-1,self.latent_dim)
         loss=0
 
         return loss,self.mu_param.data.detach()
