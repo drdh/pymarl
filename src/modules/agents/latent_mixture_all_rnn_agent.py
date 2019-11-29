@@ -24,10 +24,6 @@ class LatentMixtureAllRNNAgent(nn.Module):
 
         self.fc_latent = nn.Linear(args.latent_dim * args.n_agents, args.latent_dim * args.n_agents)
 
-        self.fc1 = nn.Linear(input_shape, args.rnn_hidden_dim)
-        self.rnn = nn.GRUCell(args.rnn_hidden_dim, args.rnn_hidden_dim)
-        self.fc2 = nn.Linear(args.rnn_hidden_dim, args.n_actions)
-
         self.fc1_w_nn=nn.Linear(args.latent_dim,input_shape*args.rnn_hidden_dim)
         self.fc1_b_nn=nn.Linear(args.latent_dim,args.rnn_hidden_dim)
 
@@ -64,6 +60,7 @@ class LatentMixtureAllRNNAgent(nn.Module):
         ], dtype=th.float)
 
         self.latent = task_role.reshape(self.args.n_agents, self.args.latent_dim)
+        self.latent = self.latent + th.randn_like(self.latent)
         # (n,latent_dim)
         self.latent = self.latent / self.latent.norm(dim=1).unsqueeze(1)  # (n,latent_dim)
 
