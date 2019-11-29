@@ -74,6 +74,20 @@ class LatentMixtureRNNAgent(nn.Module):
 
         loss = -(mu_param.norm(dim=1) * pi_param).sum()  # KL, N(0,1)
 
+        #oracle version for decoder,latent_dim=2,3s5z
+        self.latent = th.tensor([
+            [1, 0],
+            [1, 0],
+            [1, 0],
+            [0, 1],
+            [0, 1],
+            [0, 1],
+            [0, 1],
+            [0, 1]
+        ], dtype=th.float).unsqueeze(0).expand(bs, self.n_agents, self.latent_dim).reshape(-1, self.latent_dim)
+        loss = 0
+        #end
+
         return loss, th.cat([pi_param.data.detach().reshape(-1, 1), mu_param.data.detach()], dim=1)
 
         # (bs*n,(obs+act+id)), (bs,n,hidden_dim), (bs,n,latent_dim)
