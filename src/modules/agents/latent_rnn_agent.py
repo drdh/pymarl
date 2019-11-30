@@ -20,9 +20,9 @@ class LatentRNNAgent(nn.Module):
         self.mu_param = nn.Parameter(mu_param)
 
         self.latent = None
-        self.latent_fc1 = nn.Linear(args.latent_dim, args.latent_dim)
-        self.latent_fc2 = nn.Linear(args.latent_dim, args.latent_dim)
-        self.latent_fc3 = nn.Linear(args.latent_dim, args.latent_dim)
+        self.latent_fc1 = nn.Linear(args.latent_dim, args.latent_dim*4)
+        self.latent_fc2 = nn.Linear(args.latent_dim*4, args.latent_dim*2)
+        #self.latent_fc3 = nn.Linear(args.latent_dim, args.latent_dim)
 
         self.fc1 = nn.Linear(input_shape, args.rnn_hidden_dim)
         self.rnn = nn.GRUCell(args.rnn_hidden_dim, args.rnn_hidden_dim)
@@ -36,8 +36,8 @@ class LatentRNNAgent(nn.Module):
         #self.rnn_hh_w_nn=nn.Linear(args.latent_dim,args.rnn_hidden_dim*args.rnn_hidden_dim)
         #self.rnn_hh_b_nn=nn.Linear(args.latent_dim,args.rnn_hidden_dim)
 
-        self.fc2_w_nn=nn.Linear(args.latent_dim,args.rnn_hidden_dim*args.n_actions)
-        self.fc2_b_nn=nn.Linear(args.latent_dim,args.n_actions)
+        self.fc2_w_nn=nn.Linear(args.latent_dim*2,args.rnn_hidden_dim*args.n_actions)
+        self.fc2_b_nn=nn.Linear(args.latent_dim*2,args.n_actions)
 
 
     def init_latent(self,bs):
@@ -63,7 +63,7 @@ class LatentRNNAgent(nn.Module):
 
         self.latent = F.relu(self.latent_fc1(self.latent))
         self.latent = F.relu(self.latent_fc2(self.latent))
-        self.latent = F.relu(self.latent_fc3(self.latent))
+        #self.latent = F.relu(self.latent_fc3(self.latent))
         loss = 0
         # end
 
@@ -90,7 +90,7 @@ class LatentRNNAgent(nn.Module):
     def forward(self, inputs, hidden_state):
         inputs=inputs.reshape(-1,self.input_shape)
         h_in=hidden_state.reshape(-1,self.args.rnn_hidden_dim)
-        latent=self.latent.reshape(-1,self.args.latent_dim)
+        #latent=self.latent.reshape(-1,self.args.latent_dim)
 
         #fc1_w=F.relu(self.fc1_w_nn(latent))
         #fc1_b=F.relu((self.fc1_b_nn(latent)))
@@ -106,8 +106,8 @@ class LatentRNNAgent(nn.Module):
         #rnn_hh_w = rnn_hh_w.reshape(-1, self.args.rnn_hidden_dim, self.args.rnn_hidden_dim)
         #rnn_hh_b = rnn_hh_b.reshape(-1, 1, self.args.rnn_hidden_dim)
 
-        fc2_w=F.relu(self.fc2_w_nn(latent))
-        fc2_b=F.relu(self.fc2_b_nn(latent))
+        fc2_w=F.softmax(self.fc2_w_nn(self.latent))
+        fc2_b=F.softmax(self.fc2_b_nn(self.latent))
         fc2_w=fc2_w.reshape(-1,self.args.rnn_hidden_dim,self.args.n_actions)
         fc2_b=fc2_b.reshape((-1,1,self.args.n_actions))
 
