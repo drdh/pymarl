@@ -106,8 +106,8 @@ class LatentRNNAgent(nn.Module):
         #rnn_hh_w = rnn_hh_w.reshape(-1, self.args.rnn_hidden_dim, self.args.rnn_hidden_dim)
         #rnn_hh_b = rnn_hh_b.reshape(-1, 1, self.args.rnn_hidden_dim)
 
-        fc2_w=F.softmax(self.fc2_w_nn(self.latent))
-        fc2_b=F.softmax(self.fc2_b_nn(self.latent))
+        fc2_w=F.relu(self.fc2_w_nn(self.latent))
+        fc2_b=F.relu(self.fc2_b_nn(self.latent))
         fc2_w=fc2_w.reshape(-1,self.args.rnn_hidden_dim,self.args.n_actions)
         fc2_b=fc2_b.reshape((-1,1,self.args.n_actions))
 
