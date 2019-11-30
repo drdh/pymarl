@@ -33,14 +33,14 @@ class LatentInputRNNAgent(nn.Module):
 
         #oracle for input version,latent_dim=2,3s5z
         self.latent=th.tensor([
-            [1, 0],
-            [1, 0],
-            [1, 0],
-            [0, 1],
-            [0, 1],
-            [0, 1],
-            [0, 1],
-            [0, 1]
+            [1] * self.latent_dim,
+            [1] * self.latent_dim,
+            [1] * self.latent_dim,
+            [-1] * self.latent_dim,
+            [-1] * self.latent_dim,
+            [-1] * self.latent_dim,
+            [-1] * self.latent_dim,
+            [-1] * self.latent_dim
         ],dtype=th.float).unsqueeze(0).expand(bs,self.n_agents,self.latent_dim).reshape(-1,self.latent_dim)
         loss=0
         #end
