@@ -24,7 +24,7 @@ class LatentMixtureRNNAgent(nn.Module):
 
         self.latent = None
 
-        self.fc_latent = nn.Linear(args.latent_dim * args.n_agents, args.latent_dim * args.n_agents)
+        self.fc1_latent = nn.Linear(args.latent_dim , args.latent_dim)
 
         #self.fc1 = nn.Linear(input_shape, args.rnn_hidden_dim)
         self.rnn = nn.GRUCell(args.rnn_hidden_dim, args.rnn_hidden_dim)
@@ -74,7 +74,7 @@ class LatentMixtureRNNAgent(nn.Module):
 
         loss = -(mu_param.norm(dim=1) * pi_param).sum()  # KL, N(0,1)
 
-        #oracle version for decoder,latent_dim=2,3s5z
+        #oracle version for decoder, 3s5z
         self.latent = th.tensor([
             [1]*self.latent_dim,
             [1]*self.latent_dim,

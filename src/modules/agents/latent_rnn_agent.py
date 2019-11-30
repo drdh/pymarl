@@ -15,16 +15,21 @@ class LatentRNNAgent(nn.Module):
         #pi_param = pi_param / pi_param.sum()
         #self.pi_param = nn.Parameter(pi_param)
 
-        mu_param = th.randn(args.n_agents, args.latent_dim)
+        #mu_param = th.randn(args.n_agents, args.latent_dim)
         #mu_param = mu_param / mu_param.norm(dim=0)
-        self.mu_param = nn.Parameter(mu_param)
+        #self.mu_param = nn.Parameter(mu_param)
 
-        #self.fc1 = nn.Linear(input_shape, args.rnn_hidden_dim)
+        self.latent = None
+        self.latent_fc1 = nn.Linear(args.latent_dim, args.latent_dim)
+        self.latent_fc2 = nn.Linear(args.latent_dim, args.latent_dim)
+        self.latent_fc3 = nn.Linear(args.latent_dim, args.latent_dim)
+
+        self.fc1 = nn.Linear(input_shape, args.rnn_hidden_dim)
         self.rnn = nn.GRUCell(args.rnn_hidden_dim, args.rnn_hidden_dim)
         #self.fc2 = nn.Linear(args.rnn_hidden_dim, args.n_actions)
 
-        self.fc1_w_nn=nn.Linear(args.latent_dim,input_shape*args.rnn_hidden_dim)
-        self.fc1_b_nn=nn.Linear(args.latent_dim,args.rnn_hidden_dim)
+        #self.fc1_w_nn=nn.Linear(args.latent_dim,input_shape*args.rnn_hidden_dim)
+        #self.fc1_b_nn=nn.Linear(args.latent_dim,args.rnn_hidden_dim)
 
         #self.rnn_ih_w_nn=nn.Linear(args.latent_dim,args.rnn_hidden_dim*args.rnn_hidden_dim)
         #self.rnn_ih_b_nn=nn.Linear(args.latent_dim,args.rnn_hidden_dim)
@@ -35,13 +40,28 @@ class LatentRNNAgent(nn.Module):
         self.fc2_b_nn=nn.Linear(args.latent_dim,args.n_actions)
 
 
-
     def init_latent(self,bs):
-        self.latent=(self.mu_param + th.rand_like(self.mu_param)).unsqueeze(0).expand(bs,self.n_agents,self.latent_dim).reshape(-1,self.latent_dim)
+        #self.latent=(self.mu_param + th.rand_like(self.mu_param)).unsqueeze(0).expand(bs,self.n_agents,self.latent_dim).reshape(-1,self.latent_dim)
 
-        KL_neg=(self.mu_param-th.tensor([-5.0]*self.latent_dim)).norm(dim=1)
-        KL_pos=(self.mu_param-th.tensor([ 5.0]*self.latent_dim)).norm(dim=1)
-        loss=th.stack([KL_neg,KL_pos]).min(dim=0)[0].sum()
+        #KL_neg=(self.mu_param-th.tensor([-5.0]*self.latent_dim)).norm(dim=1)
+        #KL_pos=(self.mu_param-th.tensor([ 5.0]*self.latent_dim)).norm(dim=1)
+        #loss=th.stack([KL_neg,KL_pos]).min(dim=0)[0].sum()
+
+        # oracle version for decoder, 3s5z
+        role_s = th.randn(self.latent_dim)
+        role_z = th.randn(self.latent_dim)
+        self.latent = th.tensor([
+            role_s,
+            role_s,
+            role_s,
+            role_z,
+            role_z,
+            role_z,
+            role_z,
+            role_z
+        ], dtype=th.float).unsqueeze(0).expand(bs, self.n_agents, self.latent_dim).reshape(-1, self.latent_dim)
+        loss = 0
+        # end
 
         return loss,self.mu_param.data.detach()
 
@@ -64,14 +84,14 @@ class LatentRNNAgent(nn.Module):
 
         # (bs*n,(obs+act+id)), (bs,n,hidden_dim), (bs,n,latent_dim)
     def forward(self, inputs, hidden_state):
-        inputs=inputs.reshape(-1,1,self.input_shape)
-        h_in=hidden_state.reshape(-1,self.args.rnn_hidden_dim) #(bs*n,hidden_dim)
-        latent=self.latent.reshape(-1,1,self.args.latent_dim) # (bs*n,1,latent_dim)
+        inputs=inputs.reshape(-1,self.input_shape)
+        h_in=hidden_state.reshape(-1,self.args.rnn_hidden_dim)
+        latent=self.latent.reshape(-1,self.args.latent_dim)
 
-        fc1_w=F.relu(self.fc1_w_nn(latent))
-        fc1_b=F.relu((self.fc1_b_nn(latent)))
-        fc1_w=fc1_w.reshape(-1,self.input_shape,self.args.rnn_hidden_dim)
-        fc1_b=fc1_b.reshape(-1,1,self.args.rnn_hidden_dim)
+        #fc1_w=F.relu(self.fc1_w_nn(latent))
+        #fc1_b=F.relu((self.fc1_b_nn(latent)))
+        #fc1_w=fc1_w.reshape(-1,self.input_shape,self.args.rnn_hidden_dim)
+        #fc1_b=fc1_b.reshape(-1,1,self.args.rnn_hidden_dim)
 
         #rnn_ih_w=F.relu(self.rnn_ih_w_nn(latent))
         #rnn_ih_b=F.relu(self.rnn_ih_b_nn(latent))
@@ -87,8 +107,8 @@ class LatentRNNAgent(nn.Module):
         fc2_w=fc2_w.reshape(-1,self.args.rnn_hidden_dim,self.args.n_actions)
         fc2_b=fc2_b.reshape((-1,1,self.args.n_actions))
 
-        x=F.relu(th.bmm(inputs,fc1_w)+fc1_b) #(bs*n,(obs+act+id)) at time t
-
+        #x=F.relu(th.bmm(inputs,fc1_w)+fc1_b) #(bs*n,(obs+act+id)) at time t
+        x = F.relu(self.fc1(inputs)) #(bs*n,(obs+act+id)) at time t
 
         #gi=th.bmm(x,rnn_ih_w)+rnn_ih_b
         #gh=th.bmm(h_in,rnn_hh_w)+rnn_hh_b
@@ -101,13 +121,13 @@ class LatentRNNAgent(nn.Module):
         #h=newgate+inputgate*(h_in-newgate)
         #h=th.tanh(gi+gh)
 
-        x=x.reshape(-1,self.args.rnn_hidden_dim)
+        #x=x.reshape(-1,self.args.rnn_hidden_dim)
         h = self.rnn(x, h_in)
         h=h.reshape(-1,1,self.args.rnn_hidden_dim)
 
         q=F.relu(th.bmm(h,fc2_w)+fc2_b)
 
-        #x = F.relu(self.fc1(inputs)) #(bs*n,(obs+act+id)) at time t
+
         #h_in = hidden_state.reshape(-1, self.args.rnn_hidden_dim) # (bs,n,dim) ==> (bs*n, dim)
         #h = self.rnn(x, h_in)
         #q = self.fc2(h)
