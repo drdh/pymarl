@@ -129,7 +129,7 @@ class LatentRNNAgent(nn.Module):
         h = self.rnn(x, h_in)
         h=h.reshape(-1,1,self.args.rnn_hidden_dim)
 
-        q=F.relu(th.bmm(h,fc2_w)+fc2_b)
+        q=th.bmm(h,fc2_w)+fc2_b
 
 
         #h_in = hidden_state.reshape(-1, self.args.rnn_hidden_dim) # (bs,n,dim) ==> (bs*n, dim)
