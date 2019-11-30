@@ -31,6 +31,20 @@ class LatentInputRNNAgent(nn.Module):
         KL_pos=(self.mu_param-th.tensor([ 5.0]*self.latent_dim)).norm(dim=1)
         loss=th.stack([KL_neg,KL_pos]).min(dim=0)[0].sum()
 
+        #oracle for input version,latent_dim=2,3s5z
+        self.latent=th.tensor([
+            [1] * self.latent_dim,
+            [1] * self.latent_dim,
+            [1] * self.latent_dim,
+            [-1] * self.latent_dim,
+            [-1] * self.latent_dim,
+            [-1] * self.latent_dim,
+            [-1] * self.latent_dim,
+            [-1] * self.latent_dim
+        ],dtype=th.float).unsqueeze(0).expand(bs,self.n_agents,self.latent_dim).reshape(-1,self.latent_dim)
+        loss=0
+        #end
+
         return loss,self.mu_param.data.detach()
 
         #u = th.rand(self.n_agents, self.n_agents)

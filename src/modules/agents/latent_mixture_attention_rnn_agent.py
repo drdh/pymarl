@@ -3,28 +3,28 @@ import torch.nn.functional as F
 import torch as th
 
 
-class LatentMixtureRNNAgent(nn.Module):
+class LatentMixtureAttentionRNNAgent(nn.Module):
     def __init__(self, input_shape, args):
-        super(LatentMixtureRNNAgent, self).__init__()
+        super(LatentMixtureAttentionRNNAgent, self).__init__()
         self.args = args
         self.input_shape=input_shape
         self.n_agents=args.n_agents
         self.latent_dim=args.latent_dim
 
-        pi_param = th.rand(args.n_agents)
+        #pi_param = th.rand(args.n_agents)
         # pi_param = pi_param / pi_param.sum()
-        self.pi_param = nn.Parameter(pi_param)
+        #self.pi_param = nn.Parameter(pi_param)
 
         mu_param = th.randn(args.n_agents, args.latent_dim)
         # mu_param = mu_param / mu_param.norm(dim=0)
         self.mu_param = nn.Parameter(mu_param)
 
-        preference = th.randn(args.n_agents, args.latent_dim)
-        self.preference = nn.Parameter(preference)
+        #preference = th.randn(args.n_agents, args.latent_dim)
+        #self.preference = nn.Parameter(preference)
 
         self.latent = None
 
-        self.fc1_latent = nn.Linear(args.latent_dim , args.latent_dim)
+        self.fc_latent = nn.Linear(args.latent_dim * args.n_agents, args.latent_dim * args.n_agents)
 
         #self.fc1 = nn.Linear(input_shape, args.rnn_hidden_dim)
         self.rnn = nn.GRUCell(args.rnn_hidden_dim, args.rnn_hidden_dim)
@@ -44,51 +44,26 @@ class LatentMixtureRNNAgent(nn.Module):
 
 
     def init_latent(self,bs):
-        pi_param = self.pi_param / self.pi_param.sum()
-        mu_param = self.mu_param / self.mu_param.norm(dim=1).unsqueeze(1)
+        #pi_param = self.pi_param / self.pi_param.sum()
+        #mu_param = self.mu_param / self.mu_param.norm(dim=1).unsqueeze(1)
+        #preference = self.preference / self.preference.norm(dim=1).unsqueeze(1)
 
-        u = th.rand(self.n_agents, self.n_agents)
-        g = - th.log(- th.log(u))
-        c = (g + th.log(pi_param)).argmax(dim=1)
+        #u = th.rand(self.n_agents, self.n_agents)
+        #g = - th.log(- th.log(u))
+        #c = (g + th.log(pi_param)).argmax(dim=1)
 
-        task_role = (mu_param[c] + th.randn_like(mu_param) * (1.0 / self.n_agents))  # (n,latent_dim)
-        # task_role = mu_param[c]
-        if self.args.assign_net:                #(1,n*latent_dim)
-            self.latent = (self.fc_latent(task_role.reshape(1,-1))).reshape(self.args.n_agents,self.args.latent_dim)
-            #(n,latent_dim)
-            self.latent = self.latent / self.latent.norm(dim=1).unsqueeze(1)
-            self.latent = self.latent.unsqueeze(0).expand(bs, self.n_agents,
-                                                                            self.latent_dim).reshape(-1,
-                                                                                                      self.latent_dim)
-            # (bs*n,latent_dim)
-        else:
-            preference = self.preference / self.preference.norm(dim=1).unsqueeze(1)
-                   #      (n,1,latent_dim)            # (1,n,latent_dim)
-            index = (preference.unsqueeze(1) * task_role.unsqueeze(0)).norm(dim=2).max(dim=1)[1]
-            # (n,n,2) => (n,n) ==> (n,)
+        self.latent = self.fc_latent(self.mu_param.reshape((1,-1))).reshape(self.args.n_agents,self.args.latent_dim)
+        #self.latent = self.latent / self.latent.norm(dim=1).unsqueeze(1)
+        #self.latent = self.latent_dim + th.randn_like(self.latent) * (1.0 / self.args.n_agents)  # (n,latent_dim)
+        self.latent = self.latent + th.randn_like(self.latent)
+        self.latent = self.latent.unsqueeze(0).expand(bs, self.n_agents,
+                                                      self.latent_dim).reshape(-1,
+                                                                               self.latent_dim)
+        #loss = -(self.mu_param.norm(dim=1)).sum()  # KL, N(0,1)
+        loss = - (self.mu_param/self.mu_param.norm(dim=1).unsqueeze(1)).norm(dim=1).sum()
 
-            self.latent = task_role[index].unsqueeze(0).expand(bs, self.n_agents,
-                                                                            self.latent_dim).reshape(-1,
-                                                                                                      self.latent_dim)
-        # (bs*n, latent_dim)
 
-        loss = -(mu_param.norm(dim=1) * pi_param).sum()  # KL, N(0,1)
-
-        #oracle version for decoder, 3s5z
-        self.latent = th.tensor([
-            [1]*self.latent_dim,
-            [1]*self.latent_dim,
-            [1]*self.latent_dim,
-            [-1]*self.latent_dim,
-            [-1]*self.latent_dim,
-            [-1]*self.latent_dim,
-            [-1]*self.latent_dim,
-            [-1]*self.latent_dim
-        ], dtype=th.float).unsqueeze(0).expand(bs, self.n_agents, self.latent_dim).reshape(-1, self.latent_dim)
-        loss = 0
-        #end
-
-        return loss, th.cat([pi_param.data.detach().reshape(-1, 1), mu_param.data.detach()], dim=1)
+        return loss, self.mu_param.data.detach()
 
         # (bs*n,(obs+act+id)), (bs,n,hidden_dim), (bs,n,latent_dim)
     def forward(self, inputs, hidden_state):
