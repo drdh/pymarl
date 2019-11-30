@@ -48,16 +48,10 @@ class LatentRNNAgent(nn.Module):
         #loss=th.stack([KL_neg,KL_pos]).min(dim=0)[0].sum()
 
         # oracle version for decoder, 3s5z
-        role_s = th.randn(self.latent_dim)+5.0
-        role_z = th.randn(self.latent_dim)-5.0
-        self.latent = th.stack([
+        role_s = th.randn(3,self.latent_dim)+5.0
+        role_z = th.randn(5,self.latent_dim)-5.0
+        self.latent = th.cat([
             role_s,
-            role_s,
-            role_s,
-            role_z,
-            role_z,
-            role_z,
-            role_z,
             role_z
         ],dim=0).unsqueeze(0).expand(bs, self.n_agents, self.latent_dim).reshape(-1, self.latent_dim)
 
