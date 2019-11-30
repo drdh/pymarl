@@ -15,9 +15,9 @@ class LatentRNNAgent(nn.Module):
         #pi_param = pi_param / pi_param.sum()
         #self.pi_param = nn.Parameter(pi_param)
 
-        #mu_param = th.randn(args.n_agents, args.latent_dim)
+        mu_param = th.randn(args.n_agents, args.latent_dim)
         #mu_param = mu_param / mu_param.norm(dim=0)
-        #self.mu_param = nn.Parameter(mu_param)
+        self.mu_param = nn.Parameter(mu_param)
 
         self.latent = None
         self.latent_fc1 = nn.Linear(args.latent_dim, args.latent_dim)
@@ -50,7 +50,7 @@ class LatentRNNAgent(nn.Module):
         # oracle version for decoder, 3s5z
         role_s = th.randn(self.latent_dim)
         role_z = th.randn(self.latent_dim)
-        self.latent = th.tensor([
+        self.latent = th.stack([
             role_s,
             role_s,
             role_s,
@@ -59,7 +59,7 @@ class LatentRNNAgent(nn.Module):
             role_z,
             role_z,
             role_z
-        ], dtype=th.float).unsqueeze(0).expand(bs, self.n_agents, self.latent_dim).reshape(-1, self.latent_dim)
+        ],dim=0).unsqueeze(0).expand(bs, self.n_agents, self.latent_dim).reshape(-1, self.latent_dim)
         loss = 0
         # end
 
