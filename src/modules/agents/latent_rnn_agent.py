@@ -60,6 +60,10 @@ class LatentRNNAgent(nn.Module):
             role_z,
             role_z
         ],dim=0).unsqueeze(0).expand(bs, self.n_agents, self.latent_dim).reshape(-1, self.latent_dim)
+
+        self.latent = F.relu(self.latent_fc1(self.latent))
+        self.latent = F.relu(self.latent_fc2(self.latent))
+        self.latent = F.relu(self.latent_fc3(self.latent))
         loss = 0
         # end
 
