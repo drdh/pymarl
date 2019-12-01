@@ -103,6 +103,7 @@ class LatentRNNAgent(nn.Module):
 
         latent_infer = F.relu(self.inference_fc1(th.cat([h_in,inputs[:,:-self.n_agents]],dim=1)))
         latent_infer = self.inference_fc2(latent_infer)
+        latent_infer[:, -self.latent_dim:] = th.exp(latent_infer[:, -self.latent_dim:])
         latent_infer = latent_infer[:, :self.latent_dim] + latent_infer[:, -self.latent_dim:] * th.randn_like(latent_infer[:, -self.latent_dim:])
 
         loss= (latent_embed-latent_infer).norm(dim=1).sum()/(self.bs*self.n_agents)
