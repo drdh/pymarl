@@ -52,7 +52,7 @@ class LatentQLearner(QLearner):
         mac_loss,mu_param=self.mac.init_latent(batch.batch_size)
 
         for t in range(batch.max_seq_length):
-            agent_outs= self.mac.forward(batch, t=t) #(bs,n,n_actions),(bs,n,latent_dim)
+            agent_outs,loss_cs= self.mac.forward(batch, t=t) #(bs,n,n_actions),(bs,n,latent_dim)
             mac_out.append(agent_outs) #[t,(bs,n,n_actions)]
             #mac_out_latent.append((agent_outs_latent)) #[t,(bs,n,latent_dim)]
 
@@ -73,7 +73,7 @@ class LatentQLearner(QLearner):
         self.target_mac.init_latent(batch.batch_size) # (bs,n,latent_size)
 
         for t in range(batch.max_seq_length):
-            target_agent_outs= self.target_mac.forward(batch, t=t) #(bs,n,n_actions), (bs,n,latent_dim)
+            target_agent_outs,loss_cs_target= self.target_mac.forward(batch, t=t) #(bs,n,n_actions), (bs,n,latent_dim)
             target_mac_out.append(target_agent_outs) #[t,(bs,n,n_actions)]
 
         # We don't need the first timesteps Q-Value estimate for calculating targets
@@ -121,7 +121,7 @@ class LatentQLearner(QLearner):
         #mac_out_latent_norm=th.sqrt(th.sum(mac_out_latent*mac_out_latent,dim=1))
         #mac_out_latent=mac_out_latent/mac_out_latent_norm[:,None]
         #loss+=(th.norm(mac_out_latent)/mac_out_latent.size(0))*self.args.entropy_loss_weight
-        loss+=mac_loss*self.args.entropy_loss_weight
+        loss+=loss_cs*self.args.entropy_loss_weight
 
         # Optimise
         self.optimiser.zero_grad()
