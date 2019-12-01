@@ -101,10 +101,14 @@ class LatentRNNAgent(nn.Module):
         latent_embed = self.latent[:,:self.latent_dim].reshape(1,-1)+self.latent[:,-self.latent_dim:].reshape(1,-1)*th.randn(self.bs,self.n_agents*self.latent_dim)
         latent_embed = latent_embed.reshape(-1,self.latent_dim)  #(bs*n,latent_dim)
 
-        latent_infer = F.relu(self.inference_fc1(th.cat(h_in,inputs[:,:-self.n_agents],dim=1)))
+        latent_infer = F.relu(self.inference_fc1(th.cat([h_in,inputs[:,:-self.n_agents]],dim=1)))
         latent_infer = self.inference_fc2(latent_infer)
+        latent_infer = latent_infer[:, :self.latent_dim] + latent_infer[:, -self.latent_dim:] * th.randn_like(latent_infer[:, -self.latent_dim:])
 
         loss= (latent_embed-latent_infer).norm(dim=1).sum()/(self.bs*self.n_agents)
+
+        latent_embed = F.relu(self.latent_fc1(latent_embed))
+        latent_embed = F.relu(self.latent_fc2(latent_embed))
 
         #latent=latent.reshape(-1,self.args.latent_dim)
 
