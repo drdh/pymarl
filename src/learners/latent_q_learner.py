@@ -5,8 +5,8 @@ from modules.mixers.qmix import QMixer
 from .q_learner import QLearner
 import torch as th
 from torch.optim import RMSprop
-import numpy as np
-import matplotlib.pyplot as plt
+#import numpy as np
+#import matplotlib.pyplot as plt
 
 
 class LatentQLearner(QLearner):
@@ -137,17 +137,17 @@ class LatentQLearner(QLearner):
             self._update_targets()
             self.last_target_update_episode = episode_num
 
-        if t_env - self.log_stats_t >= self.args.learner_log_interval:
-            if self.role_save % self.role_save_interval == 0:
-                self.role_save = 0
-                if self.args.latent_dim in [2, 3]:
+        #if t_env - self.log_stats_t >= self.args.learner_log_interval:
+        #    if self.role_save % self.role_save_interval == 0:
+        #        self.role_save = 0
+        #        if self.args.latent_dim in [2, 3]:
 
                     # fig = plt.figure()
                     # ax = fig.add_subplot(111, projection='3d')
-                    print(self.mac.agent.latent[:, :self.args.latent_dim],
-                          self.mac.agent.latent[:, -self.args.latent_dim:])
+        #           print(self.mac.agent.latent[:, :self.args.latent_dim],
+        #                  self.mac.agent.latent[:, -self.args.latent_dim:])
 
-            self.role_save += 1
+        #    self.role_save += 1
 
             self.logger.log_stat("loss", loss.item(), t_env)
             self.logger.log_stat("grad_norm", grad_norm, t_env)
