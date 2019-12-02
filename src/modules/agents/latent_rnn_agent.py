@@ -1,6 +1,8 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import torch as th
+from torch.distributions import MultivariateNormal
+from torch.distributions import kl_divergence
 
 
 class LatentRNNAgent(nn.Module):
@@ -96,20 +98,31 @@ class LatentRNNAgent(nn.Module):
 
         self.latent = self.embed_fc(inputs[:self.n_agents, - self.n_agents:]) #(n,2*latent_dim)==(n,mu+log var)
         self.latent[:,-self.latent_dim:] = th.exp(self.latent[:,-self.latent_dim:]) #var
-
-                                                         #(1,n*latent_dim)                            (1,n*latent_dim)==>(bs,n*latent*dim)
-        latent_embed = self.latent[:,:self.latent_dim].reshape(1,-1)+self.latent[:,-self.latent_dim:].reshape(1,-1)*th.randn(self.bs,self.n_agents*self.latent_dim)
-        latent_embed = latent_embed.reshape(-1,self.latent_dim)  #(bs*n,latent_dim)
+        latent_embed = self.latent.unsqueeze(0).expand(self.bs, self.n_agents, self.latent_dim * 2).reshape(self.bs * self.n_agents, self.latent_dim * 2)
 
         latent_infer = F.relu(self.inference_fc1(th.cat([h_in,inputs[:,:-self.n_agents]],dim=1)))
-        latent_infer = self.inference_fc2(latent_infer)
+        latent_infer = self.inference_fc2(latent_infer)                        #(n,2*latent_dim)==(n,mu+log var)
         latent_infer[:, -self.latent_dim:] = th.exp(latent_infer[:, -self.latent_dim:])
-        latent_infer = latent_infer[:, :self.latent_dim] + latent_infer[:, -self.latent_dim:] * th.randn_like(latent_infer[:, -self.latent_dim:])
 
-        loss= (latent_embed-latent_infer).norm(dim=1).sum()/(self.bs*self.n_agents)
+        #sample
+        latent=th.rand(self.bs*self.n_agents, self.latent_dim)
+        loss=0
+        for i in range(self.bs*self.n_agents):
+            gaussian_embed=MultivariateNormal(latent_embed[i,:self.latent_dim],th.diag(latent_embed[i,self.latent_dim:]))
+            gaussian_infer=MultivariateNormal(latent_infer[i,:self.latent_dim],th.diag(latent_infer[i,self.latent_dim:]))
 
-        latent_embed = F.relu(self.latent_fc1(latent_embed))
-        latent_embed = F.relu(self.latent_fc2(latent_embed))
+            latent[i]=gaussian_embed.rsample()
+            loss+=gaussian_embed.entropy()+kl_divergence(gaussian_embed,gaussian_infer) #CE = H + KL
+
+        #handcrafted reparameterization
+                                                         #(1,n*latent_dim)                            (1,n*latent_dim)==>(bs,n*latent*dim)
+        #latent_embed = self.latent[:,:self.latent_dim].reshape(1,-1)+self.latent[:,-self.latent_dim:].reshape(1,-1)*th.randn(self.bs,self.n_agents*self.latent_dim)
+        #latent_embed = latent_embed.reshape(-1,self.latent_dim)  #(bs*n,latent_dim)
+        #latent_infer = latent_infer[:, :self.latent_dim] + latent_infer[:, -self.latent_dim:] * th.randn_like(latent_infer[:, -self.latent_dim:])
+        #loss= (latent_embed-latent_infer).norm(dim=1).sum()/(self.bs*self.n_agents)
+
+        latent = F.relu(self.latent_fc1(latent))
+        latent = F.relu(self.latent_fc2(latent))
 
         #latent=latent.reshape(-1,self.args.latent_dim)
 
@@ -127,8 +140,8 @@ class LatentRNNAgent(nn.Module):
         #rnn_hh_w = rnn_hh_w.reshape(-1, self.args.rnn_hidden_dim, self.args.rnn_hidden_dim)
         #rnn_hh_b = rnn_hh_b.reshape(-1, 1, self.args.rnn_hidden_dim)
 
-        fc2_w=F.relu(self.fc2_w_nn(latent_embed))
-        fc2_b=F.relu(self.fc2_b_nn(latent_embed))
+        fc2_w=self.fc2_w_nn(latent)
+        fc2_b=self.fc2_b_nn(latent)
         fc2_w=fc2_w.reshape(-1,self.args.rnn_hidden_dim,self.args.n_actions)
         fc2_b=fc2_b.reshape((-1,1,self.args.n_actions))
 
