@@ -131,7 +131,7 @@ class LatentFiLMRNNAgent(nn.Module):
 
         latent = F.relu(self.latent_fc1(latent))
         latent = self.latent_fc2(latent)
-        gamma_z = latent[:,self.hidden_dim]
+        gamma_z = latent[:,:self.hidden_dim]
         beta_z = latent[:,self.hidden_dim:]
 
         # latent=latent.reshape(-1,self.args.latent_dim)
