@@ -105,14 +105,11 @@ class LatentRNNAgent(nn.Module):
         latent_infer[:, -self.latent_dim:] = th.exp(latent_infer[:, -self.latent_dim:])
 
         #sample
-        latent=th.rand(self.bs*self.n_agents, self.latent_dim)
-        loss=0
-        for i in range(self.bs*self.n_agents):
-            gaussian_embed=MultivariateNormal(latent_embed[i,:self.latent_dim],th.diag(latent_embed[i,self.latent_dim:]))
-            gaussian_infer=MultivariateNormal(latent_infer[i,:self.latent_dim],th.diag(latent_infer[i,self.latent_dim:]))
+        gaussian_embed = MultivariateNormal(latent_embed[:, :self.latent_dim],th.diag_embed(latent_embed[:, self.latent_dim:]))
+        gaussian_infer = MultivariateNormal(latent_infer[:, :self.latent_dim],th.diag_embed(latent_infer[:, self.latent_dim:]))
 
-            latent[i]=gaussian_embed.rsample()
-            loss+=gaussian_embed.entropy()+kl_divergence(gaussian_embed,gaussian_infer) #CE = H + KL
+        latent=gaussian_embed.rsample()
+        loss=gaussian_embed.entropy()+kl_divergence(gaussian_embed,gaussian_infer) #CE = H + KL
 
         #handcrafted reparameterization
                                                          #(1,n*latent_dim)                            (1,n*latent_dim)==>(bs,n*latent*dim)
