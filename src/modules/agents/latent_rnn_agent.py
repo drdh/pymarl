@@ -116,7 +116,7 @@ class LatentRNNAgent(nn.Module):
         gaussian_infer = MultivariateNormal(latent_infer[:, :self.latent_dim],var_infer)
 
         latent=gaussian_embed.rsample()
-        loss=gaussian_embed.entropy()+kl_divergence(gaussian_embed,gaussian_infer) #CE = H + KL
+        loss=gaussian_embed.entropy().sum()+kl_divergence(gaussian_embed,gaussian_infer).sum() #CE = H + KL
 
         #handcrafted reparameterization
                                                          #(1,n*latent_dim)                            (1,n*latent_dim)==>(bs,n*latent*dim)
