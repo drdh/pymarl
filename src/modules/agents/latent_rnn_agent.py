@@ -131,7 +131,7 @@ class LatentRNNAgent(nn.Module):
         latent = gaussian_embed.rsample()
 
         latent = F.relu(self.latent_fc1(latent))
-        latent = F.relu(self.latent_fc2(latent))
+        latent = (self.latent_fc2(latent))
 
         # latent=latent.reshape(-1,self.args.latent_dim)
 
