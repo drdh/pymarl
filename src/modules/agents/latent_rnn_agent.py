@@ -105,8 +105,15 @@ class LatentRNNAgent(nn.Module):
         latent_infer[:, -self.latent_dim:] = th.exp(latent_infer[:, -self.latent_dim:])
 
         #sample
-        gaussian_embed = MultivariateNormal(latent_embed[:, :self.latent_dim],th.diag_embed(latent_embed[:, self.latent_dim:]))
-        gaussian_infer = MultivariateNormal(latent_infer[:, :self.latent_dim],th.diag_embed(latent_infer[:, self.latent_dim:]))
+        #gaussian_embed = MultivariateNormal(latent_embed[:, :self.latent_dim],th.diag_embed(latent_embed[:, self.latent_dim:])) #for torch 1.3.1
+        #gaussian_infer = MultivariateNormal(latent_infer[:, :self.latent_dim],th.diag_embed(latent_infer[:, self.latent_dim:]))
+        var_embed = th.empty(self.bs*self.n_agents,self.latent_dim,self.latent_dim)
+        var_infer = th.empty(self.bs*self.n_agents,self.latent_dim,self.latent_dim)
+        for i in range(self.bs*self.n_agents):
+            var_embed[i]=th.diag(latent_embed[i, self.latent_dim:])
+            var_infer[i]=th.diag(latent_infer[i, self.latent_dim:])
+        gaussian_embed = MultivariateNormal(latent_embed[:, :self.latent_dim],var_embed)
+        gaussian_infer = MultivariateNormal(latent_infer[:, :self.latent_dim],var_infer)
 
         latent=gaussian_embed.rsample()
         loss=gaussian_embed.entropy()+kl_divergence(gaussian_embed,gaussian_infer) #CE = H + KL
