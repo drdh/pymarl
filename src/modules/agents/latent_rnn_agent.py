@@ -116,8 +116,8 @@ class LatentRNNAgent(nn.Module):
         # gaussian_embed = MultivariateNormal(latent_embed[:, :self.latent_dim], var_embed)
         # gaussian_infer = MultivariateNormal(latent_infer[:, :self.latent_dim], var_infer)
 
-        gaussian_embed = D.Normal(latent_embed[:, :self.latent_dim], latent_embed[:, self.latent_dim:])
-        gaussian_infer = D.Normal(latent_infer[:, :self.latent_dim], latent_infer[:, self.latent_dim:])
+        gaussian_embed = D.Normal(latent_embed[:, :self.latent_dim], (latent_embed[:, self.latent_dim:])**(1/2))
+        gaussian_infer = D.Normal(latent_infer[:, :self.latent_dim], (latent_infer[:, self.latent_dim:])**(1/2))
 
         loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, gaussian_infer).sum()  # CE = H + KL
         loss = loss / (self.bs*self.n_agents)
