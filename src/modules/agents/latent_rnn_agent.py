@@ -120,7 +120,7 @@ class LatentRNNAgent(nn.Module):
         gaussian_infer = D.Normal(latent_infer[:, :self.latent_dim], latent_infer[:, self.latent_dim:])
 
         loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, gaussian_infer).sum()  # CE = H + KL
-
+        loss = loss / (self.bs*self.n_agents)
         # handcrafted reparameterization
         # (1,n*latent_dim)                            (1,n*latent_dim)==>(bs,n*latent*dim)
         # latent_embed = self.latent[:,:self.latent_dim].reshape(1,-1)+self.latent[:,-self.latent_dim:].reshape(1,-1)*th.randn(self.bs,self.n_agents*self.latent_dim)
