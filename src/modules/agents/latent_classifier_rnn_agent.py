@@ -6,9 +6,9 @@ from torch.distributions import kl_divergence
 import torch.distributions as D
 
 
-class LatentRNNAgent(nn.Module):
+class LatentClassifierRNNAgent(nn.Module):
     def __init__(self, input_shape, args):
-        super(LatentRNNAgent, self).__init__()
+        super(LatentClassifierRNNAgent, self).__init__()
         self.args = args
         self.input_shape = input_shape
         self.n_agents = args.n_agents
