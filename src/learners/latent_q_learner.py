@@ -137,7 +137,7 @@ class LatentQLearner(QLearner):
             self._update_targets()
             self.last_target_update_episode = episode_num
 
-        #if t_env - self.log_stats_t >= self.args.learner_log_interval:
+        if t_env - self.log_stats_t >= self.args.learner_log_interval:
         #    if self.role_save % self.role_save_interval == 0:
         #        self.role_save = 0
         #        if self.args.latent_dim in [2, 3]:
