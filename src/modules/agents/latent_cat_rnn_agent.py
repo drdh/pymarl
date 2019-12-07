@@ -115,8 +115,7 @@ class LatentCatRNNAgent(nn.Module):
         #latent_infer = F.relu(self.inference_fc1(th.cat([h_in, inputs[:, :-self.n_agents]], dim=1)))
         #latent_infer = self.inference_fc2(latent_infer)  # (n,2*latent_dim)==(n,mu+log var)
         #latent_infer[:, -self.latent_dim:] = th.exp(latent_infer[:, -self.latent_dim:])
-
-        #loss
+        # loss
         loss=(latent_embed-latent_infer).norm(dim=1).sum()
 
         # sample
