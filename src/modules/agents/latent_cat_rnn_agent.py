@@ -105,7 +105,7 @@ class LatentCatRNNAgent(nn.Module):
             self.bs * self.n_agents, self.latent_dim) #(bs*n,pi)
 
         latent_infer = F.relu(self.inference_fc1(th.cat([h_in.detach(), inputs[:, :-self.n_agents]], dim=1)))
-        latent_infer = F.softmax(self.inference_fc2(latent_infer) ) # (bs*n,pi)
+        latent_infer = F.softmax(self.inference_fc2(latent_infer),dim=1) # (bs*n,pi)
 
         #self.latent = self.embed_fc(inputs[:self.n_agents, - self.n_agents:])  # (n,2*latent_dim)==(n,mu+log var)
         #self.latent[:, -self.latent_dim:] = th.exp(self.latent[:, -self.latent_dim:])  # var
