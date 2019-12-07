@@ -6,9 +6,9 @@ from torch.distributions import kl_divergence
 import torch.distributions as D
 
 
-class LatentClassifierRNNAgent(nn.Module):
+class LatentMSERNNAgent(nn.Module):
     def __init__(self, input_shape, args):
-        super(LatentClassifierRNNAgent, self).__init__()
+        super(LatentMSERNNAgent, self).__init__()
         self.args = args
         self.input_shape = input_shape
         self.n_agents = args.n_agents
@@ -30,8 +30,8 @@ class LatentClassifierRNNAgent(nn.Module):
 
         self.latent = th.rand(args.n_agents, args.latent_dim * 2)  # (n,mu+var)
 
-        #self.latent_fc1 = nn.Linear(args.latent_dim, args.latent_dim * 4)
-        #self.latent_fc2 = nn.Linear(args.latent_dim * 4, args.latent_dim * 4)
+        self.latent_fc1 = nn.Linear(args.latent_dim, args.latent_dim * 4)
+        self.latent_fc2 = nn.Linear(args.latent_dim * 4, args.latent_dim * 4)
         # self.latent_fc3 = nn.Linear(args.latent_dim, args.latent_dim)
 
         self.fc1 = nn.Linear(input_shape, args.rnn_hidden_dim)
@@ -46,8 +46,8 @@ class LatentClassifierRNNAgent(nn.Module):
         # self.rnn_hh_w_nn=nn.Linear(args.latent_dim,args.rnn_hidden_dim*args.rnn_hidden_dim)
         # self.rnn_hh_b_nn=nn.Linear(args.latent_dim,args.rnn_hidden_dim)
 
-        self.fc2_w_nn = nn.Linear(args.latent_dim, args.rnn_hidden_dim * args.n_actions)
-        self.fc2_b_nn = nn.Linear(args.latent_dim, args.n_actions)
+        self.fc2_w_nn = nn.Linear(args.latent_dim*4, args.rnn_hidden_dim * args.n_actions)
+        self.fc2_b_nn = nn.Linear(args.latent_dim*4, args.n_actions)
 
     def init_latent(self, bs):
         self.bs = bs
@@ -119,8 +119,8 @@ class LatentClassifierRNNAgent(nn.Module):
         gaussian_embed = D.Normal(latent_embed[:, :self.latent_dim], (latent_embed[:, self.latent_dim:])**(1/2))
         gaussian_infer = D.Normal(latent_infer[:, :self.latent_dim], (latent_infer[:, self.latent_dim:])**(1/2))
 
-        loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, gaussian_infer).sum()  # CE = H + KL
-        loss = loss / (self.bs*self.n_agents)
+        #loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, gaussian_infer).sum()  # CE = H + KL
+        #loss = loss / (self.bs*self.n_agents)
         # handcrafted reparameterization
         # (1,n*latent_dim)                            (1,n*latent_dim)==>(bs,n*latent*dim)
         # latent_embed = self.latent[:,:self.latent_dim].reshape(1,-1)+self.latent[:,-self.latent_dim:].reshape(1,-1)*th.randn(self.bs,self.n_agents*self.latent_dim)
@@ -129,9 +129,11 @@ class LatentClassifierRNNAgent(nn.Module):
         # loss= (latent_embed-latent_infer).norm(dim=1).sum()/(self.bs*self.n_agents)
 
         latent = gaussian_embed.rsample()
+        latent_cmp = gaussian_infer.rsample()
+        loss = (latent-latent_cmp).norm(dim=1).sum()/(self.bs*self.n_agents)
 
-        #latent = F.relu(self.latent_fc1(latent))
-        #latent = (self.latent_fc2(latent))
+        latent = F.relu(self.latent_fc1(latent))
+        latent = (self.latent_fc2(latent))
 
         # latent=latent.reshape(-1,self.args.latent_dim)
 
