@@ -33,4 +33,5 @@ entropy_loss_weight : 0.01
 use_tensorboard: True
 save_model: True
 use_cuda: False
+device_num: 0
 save_replay: False
