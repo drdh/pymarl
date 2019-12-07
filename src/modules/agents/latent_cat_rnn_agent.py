@@ -122,7 +122,7 @@ class LatentCatRNNAgent(nn.Module):
 
         # sample
         g=Gumbel(0.0,1.0)
-        latent_embed = F.softmax(th.log(latent_embed+self.eps) + g.sample(latent_embed.size()), dim=1)  # softmax onehot
+        latent_embed = F.softmax(th.log(latent_embed+self.eps) + g.sample(latent_embed.size()).cuda(), dim=1)  # softmax onehot
         #latent_infer = F.softmax(th.log(latent_infer+self.eps) + g.sample(latent_infer.size()), dim=1)
 
 
