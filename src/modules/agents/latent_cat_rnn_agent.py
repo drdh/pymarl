@@ -119,6 +119,7 @@ class LatentCatRNNAgent(nn.Module):
         #loss=(latent_embed-latent_infer).norm(dim=1).sum()
         #loss= -(latent_embed * th.log(latent_infer+self.eps)).sum()/(self.bs*self.n_agents)
         loss = -(latent_infer * th.log(latent_embed + self.eps)).sum() / (self.bs * self.n_agents)
+        #loss = -((latent_infer * th.log(latent_embed + self.eps)).sum() + 0.01*(latent_embed*th.log(latent_embed+self.eps)).sum())/ (self.bs * self.n_agents)
 
         # sample
         g=Gumbel(0.0,1.0)
