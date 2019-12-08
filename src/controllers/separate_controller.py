@@ -63,7 +63,10 @@ class SeparateMAC(BasicMAC):
                     # (bs,n,n_actions), (bs,n,latent_dim)
 
     def init_hidden(self, batch_size):
-        self.hidden_states = th.zeros(batch_size,self.n_agents,self.args.rnn_hidden_dim).cuda()  #  (bs,n,hidden_dim)
+        if self.args.use_cuda:
+            self.hidden_states = th.zeros(batch_size,self.n_agents,self.args.rnn_hidden_dim).cuda()  #  (bs,n,hidden_dim)
+        else:
+            self.hidden_states = th.zeros(batch_size, self.n_agents, self.args.rnn_hidden_dim)
 
     #for SeparateMAC
     def init_latent(self, batch_size):
