@@ -4,6 +4,7 @@ from .rnn_agent import RNNAgent
 from .latent_rnn_agent import LatentRNNAgent
 from .latent_mse_rnn_agent import LatentMSERNNAgent
 from .latent_cat_rnn_agent import LatentCatRNNAgent
+from .latent_evolve_rnn_agent import LatentEvolveRNNAgent
 
 from .latent_film_rnn_agent import LatentFiLMRNNAgent
 from .latent_mixture_rnn_agent import LatentMixtureRNNAgent
@@ -19,6 +20,7 @@ REGISTRY["rnn"] = RNNAgent
 REGISTRY["latent_rnn"] = LatentRNNAgent
 REGISTRY["latent_cat_rnn"] = LatentCatRNNAgent
 REGISTRY["latent_mse_rnn"] = LatentMSERNNAgent
+REGISTRY["latent_evolve_rnn"] = LatentEvolveRNNAgent
 REGISTRY["latent_film_rnn"] = LatentFiLMRNNAgent
 REGISTRY["latent_mixture_rnn"] = LatentMixtureRNNAgent
 REGISTRY["latent_mixture_all_rnn"] = LatentMixtureAllRNNAgent
