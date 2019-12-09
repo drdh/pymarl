@@ -55,7 +55,7 @@ class LatentQLearner(QLearner):
         self.mac.init_hidden(batch.batch_size)
         mac_loss,mu_param=self.mac.init_latent(batch.batch_size)
 
-        loss_cs=0
+        #loss_cs=0
         for t in range(batch.max_seq_length):
             agent_outs,loss_cs= self.mac.forward(batch, t=t) #(bs,n,n_actions),(bs,n,latent_dim)
             #loss_cs=self.args.gamma*loss_cs + _loss
