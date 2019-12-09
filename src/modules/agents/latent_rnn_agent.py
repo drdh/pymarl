@@ -46,8 +46,8 @@ class LatentRNNAgent(nn.Module):
         # self.rnn_hh_w_nn=nn.Linear(args.latent_dim,args.rnn_hidden_dim*args.rnn_hidden_dim)
         # self.rnn_hh_b_nn=nn.Linear(args.latent_dim,args.rnn_hidden_dim)
 
-        self.fc2_w_nn = nn.Linear(args.latent_dim, args.rnn_hidden_dim * args.n_actions)
-        self.fc2_b_nn = nn.Linear(args.latent_dim, args.n_actions)
+        self.fc2_w_nn = nn.Linear(args.latent_dim, args.rnn_hidden_dim * args.n_actions, bias=False)
+        self.fc2_b_nn = nn.Linear(args.latent_dim, args.n_actions, bias=False)
 
     def init_latent(self, bs):
         self.bs = bs
