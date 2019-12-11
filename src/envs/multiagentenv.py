@@ -8,6 +8,9 @@ class MultiAgentEnv(object):
         """ Returns all agent observations in a list """
         raise NotImplementedError
 
+    def get_own_feature_size(self):
+        return None
+
     def get_obs_agent(self, agent_id):
         """ Returns observation for agent_id """
         raise NotImplementedError

@@ -87,6 +87,12 @@ def run_sequential(args, logger):
     args.n_actions = env_info["n_actions"]
     args.state_shape = env_info["state_shape"]
 
+    args.own_feature_size = env_info["own_feature_size"] #unit_type_bits+shield_bits_ally
+    if args.obs_last_action:
+        args.own_feature_size+=args.n_actions
+    if args.obs_agent_id:
+        args.own_feature_size+=args.n_agents
+
     # Default/Base scheme
     scheme = {
         "state": {"vshape": env_info["state_shape"]},
