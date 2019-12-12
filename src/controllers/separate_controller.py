@@ -96,17 +96,17 @@ class SeparateMAC(BasicMAC):
         # Other MACs might want to e.g. delegate building inputs to each agent
         bs = batch.batch_size
         inputs = []
-        inputs.append(batch["obs"][:, t])  # b1av
         if self.args.obs_last_action: #True for QMix
             if t == 0:
                 inputs.append(th.zeros_like(batch["actions_onehot"][:, t])) #last actions are empty
             else:
                 inputs.append(batch["actions_onehot"][:, t-1])
+        inputs.append(batch["obs"][:, t])  # b1av
         if self.args.obs_agent_id: # True for QMix
             inputs.append(th.eye(self.n_agents, device=batch.device).unsqueeze(0).expand(bs, -1, -1)) #onehot agent ID
 
         #inputs[i]: (bs,n,n)
-        inputs = th.cat([x.reshape(bs*self.n_agents, -1) for x in inputs], dim=1)
+        inputs = th.cat([x.reshape(bs*self.n_agents, -1) for x in inputs], dim=1) #(bs*n, act+obs+id)
         #inputs[i]: (bs*n,n); ==> (bs*n,3n) i.e. (bs*n,(obs+act+id))
         return inputs
 

@@ -54,10 +54,15 @@ class MultiAgentEnv(object):
     def save_replay(self):
         raise NotImplementedError
 
+    def get_units_type_id(self):
+        return None
+
     def get_env_info(self):
         env_info = {"state_shape": self.get_state_size(),
                     "obs_shape": self.get_obs_size(),
                     "n_actions": self.get_total_actions(),
                     "n_agents": self.n_agents,
-                    "episode_limit": self.episode_limit}
+                    "episode_limit": self.episode_limit,
+                    "units_type_id": self.get_units_type_id(),
+                    "own_feature_size": self.get_own_feature_size()}
         return env_info

@@ -12,6 +12,7 @@ class LatentRNNAgent(nn.Module):
         self.args = args
         self.input_shape = input_shape
         self.n_agents = args.n_agents
+        self.n_actions = args.n_actions
         self.latent_dim = args.latent_dim
         self.hidden_dim = args.rnn_hidden_dim
         self.bs = 0
@@ -24,14 +25,16 @@ class LatentRNNAgent(nn.Module):
         # mu_param = mu_param / mu_param.norm(dim=0)
         # self.mu_param = nn.Parameter(mu_param)
 
-        self.embed_fc = nn.Linear(args.n_agents, args.latent_dim * 2)
+        self.embed_fc_input_size = args.own_feature_size
+
+        self.embed_fc = nn.Linear(self.embed_fc_input_size, args.latent_dim * 2)
         self.inference_fc1 = nn.Linear(args.rnn_hidden_dim + input_shape - args.n_agents, args.latent_dim * 4)
         self.inference_fc2 = nn.Linear(args.latent_dim * 4, args.latent_dim * 2)
 
         self.latent = th.rand(args.n_agents, args.latent_dim * 2)  # (n,mu+var)
 
-        #self.latent_fc1 = nn.Linear(args.latent_dim, args.latent_dim * 4)
-        #self.latent_fc2 = nn.Linear(args.latent_dim * 4, args.latent_dim * 4)
+        self.latent_fc1 = nn.Linear(args.latent_dim, args.latent_dim * 4)
+        self.latent_fc2 = nn.Linear(args.latent_dim * 4, args.latent_dim * 4)
         # self.latent_fc3 = nn.Linear(args.latent_dim, args.latent_dim)
 
         self.fc1 = nn.Linear(input_shape, args.rnn_hidden_dim)
@@ -46,8 +49,8 @@ class LatentRNNAgent(nn.Module):
         # self.rnn_hh_w_nn=nn.Linear(args.latent_dim,args.rnn_hidden_dim*args.rnn_hidden_dim)
         # self.rnn_hh_b_nn=nn.Linear(args.latent_dim,args.rnn_hidden_dim)
 
-        self.fc2_w_nn = nn.Linear(args.latent_dim, args.rnn_hidden_dim * args.n_actions, bias=False)
-        self.fc2_b_nn = nn.Linear(args.latent_dim, args.n_actions, bias=False)
+        self.fc2_w_nn = nn.Linear(args.latent_dim *4, args.rnn_hidden_dim * args.n_actions)
+        self.fc2_b_nn = nn.Linear(args.latent_dim *4, args.n_actions)
 
     def init_latent(self, bs):
         self.bs = bs
@@ -71,7 +74,7 @@ class LatentRNNAgent(nn.Module):
         loss = 0
         # end
 
-        return loss, self.latent.detach()
+        return loss, self.latent[:self.n_agents,:].detach()
 
         # u = th.rand(self.n_agents, self.n_agents)
         # g = - th.log(- th.log(u))
@@ -96,11 +99,19 @@ class LatentRNNAgent(nn.Module):
         inputs = inputs.reshape(-1, self.input_shape)
         h_in = hidden_state.reshape(-1, self.hidden_dim)
 
-        self.latent = self.embed_fc(inputs[:self.n_agents, - self.n_agents:])  # (n,2*latent_dim)==(n,mu+log var)
+        embed_fc_input = inputs[:, - self.embed_fc_input_size:] #own features(unit_type_bits+shield_bits_ally)+id
+        #if self.args.obs_last_action:
+        #    embed_fc_input = inputs[:, - self.embed_fc_input_size - self.n_actions:]
+        #    embed_fc_input = th.cat([embed_fc_input[:, :-self.n_agents-self.n_actions],embed_fc_input[:,-self.n_agents:]],dim=1)
+
+        #self.latent = self.embed_fc(inputs[:self.n_agents, - self.n_agents:])  # (n,2*latent_dim)==(n,mu+log var)
+        self.latent = self.embed_fc(embed_fc_input)
         #self.latent[:,:self.latent_dim] = F.normalize(self.latent[:,:self.latent_dim].clone(),p=2,dim=1)
         self.latent[:, -self.latent_dim:] = th.exp(self.latent[:, -self.latent_dim:])  # var
-        latent_embed = self.latent.unsqueeze(0).expand(self.bs, self.n_agents, self.latent_dim * 2).reshape(
-            self.bs * self.n_agents, self.latent_dim * 2)
+        #latent_embed = self.latent.unsqueeze(0).expand(self.bs, self.n_agents, self.latent_dim * 2).reshape(
+        #    self.bs * self.n_agents, self.latent_dim * 2)
+
+        latent_embed = self.latent.reshape(self.bs*self.n_agents,self.latent_dim*2)
 
         latent_infer = F.relu(self.inference_fc1(th.cat([h_in.detach(), inputs[:, :-self.n_agents]], dim=1)))
         latent_infer = self.inference_fc2(latent_infer)  # (n,2*latent_dim)==(n,mu+log var)
@@ -132,8 +143,8 @@ class LatentRNNAgent(nn.Module):
 
         latent = gaussian_embed.rsample()
 
-        #latent = F.relu(self.latent_fc1(latent))
-        #latent = (self.latent_fc2(latent))
+        latent = F.relu(self.latent_fc1(latent))
+        latent = (self.latent_fc2(latent))
 
         # latent=latent.reshape(-1,self.args.latent_dim)
 
