@@ -42,7 +42,7 @@ class LatentRNNAgent(nn.Module):
         self.infer_mod1=snail.TCBlock(snail_input_dim+snail_value_size, snail_T, snail_filters) # in_channels, seq_len, filters
         self.infer_mod2=snail.AttentionBlock(snail_input_dim+snail_value_size+snail_filters*layer_count, snail_key_size, snail_value_size)
         # snail_input_dim+2*snail_value_size+snail_filters*layer_count
-        self.infer_mod3=nn.Conv1d(snail_input_dim+2*snail_value_size+snail_filters*layer_count,self.latent_dim,1) # in_channels, out_channels, kernel_size
+        self.infer_mod3=nn.Conv1d(snail_input_dim+2*snail_value_size+snail_filters*layer_count,self.latent_dim*2,1) # in_channels, out_channels, kernel_size
 
         self.latent = th.rand(args.n_agents, args.latent_dim * 2)  # (n,mu+var)
 
@@ -125,7 +125,7 @@ class LatentRNNAgent(nn.Module):
         gaussian_embed = D.Normal(latent_embed[:, :self.latent_dim], (latent_embed[:, self.latent_dim:])**(1/2))
 
         loss = 0
-        if t==batch.max_seq_length: #(B,D,T)
+        if t==batch.max_seq_length-1: #(B,D,T)
             inputs_infer = []
             inputs_infer.append(batch["obs"])
             if self.args.obs_last_action:
@@ -133,18 +133,18 @@ class LatentRNNAgent(nn.Module):
             #                           (bs,t,n,dim)==>(bs,n,dim,t)  ==> (bs*n,dim,t)
             inputs_infer = th.cat(inputs_infer,dim=3).permute(0,2,3,1).reshape(self.bs*self.n_agents,-1,batch.max_seq_length)
             if batch.max_seq_length<self.args.snail_max_t:
-                inputs_infer=F.pad(inputs_infer,(0,self.args.snail_max_t-batch.max_seq_length)) #pad=(left,right)
+                inputs_infer=F.pad(inputs_infer,(self.args.snail_max_t-batch.max_seq_length,0)) #pad=(left,right)
             elif batch.max_seq_length>self.args.snail_max_t:
-                inputs_infer=inputs_infer[:,:,self.args.snail_max_t:]
+                inputs_infer=inputs_infer[:,:,-self.args.snail_max_t:]
 
             latent_infer=self.infer_mod0(inputs_infer)
             latent_infer=self.infer_mod1(latent_infer)
             latent_infer=self.infer_mod2(latent_infer)
-            latent_infer=self.infer_mod3(latent_infer).reshape(-1,self.latent_dim)
+            latent_infer=self.infer_mod3(latent_infer).mean(dim=2).reshape(-1,self.latent_dim*2)
 
             #latent_infer = F.relu(self.inference_fc1(th.cat([h_in.detach(), inputs[:, :-self.n_agents]], dim=1)))
             #latent_infer = self.inference_fc2(latent_infer)  # (n,2*latent_dim)==(n,mu+log var)
-            #latent_infer[:, -self.latent_dim:] = th.exp(latent_infer[:, -self.latent_dim:])
+            latent_infer[:, -self.latent_dim:] = th.exp(latent_infer[:, -self.latent_dim:])
             gaussian_infer = D.Normal(latent_infer[:, :self.latent_dim], (latent_infer[:, self.latent_dim:])**(1/2))
 
             loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, gaussian_infer).sum()  # CE = H + KL

@@ -71,8 +71,8 @@ class DenseBlock(nn.Module):
         )
 
     def forward(self, minibatch):
-        tanh = F.tanh(self.causal_conv1(minibatch))
-        sig = F.sigmoid(self.causal_conv2(minibatch))
+        tanh = torch.tanh(self.causal_conv1(minibatch))
+        sig = torch.sigmoid(self.causal_conv2(minibatch))
         out = torch.cat([minibatch, tanh*sig], dim=1)
         return out
 
