@@ -30,8 +30,8 @@ class LatentEvolveRNNAgent(nn.Module):
 
         self.latent = th.rand(args.n_agents, args.latent_dim)  # (n,mu)
 
-        self.latent_fc1 = nn.Linear(args.latent_dim, args.latent_dim * 4)
-        #self.latent_fc2 = nn.Linear(args.latent_dim * 4, args.latent_dim * 4)
+        # self.latent_fc1 = nn.Linear(args.latent_dim, args.latent_dim * 4)
+        # self.latent_fc2 = nn.Linear(args.latent_dim * 4, args.latent_dim * 4)
         # self.latent_fc3 = nn.Linear(args.latent_dim, args.latent_dim)
 
         self.fc1 = nn.Linear(input_shape, args.rnn_hidden_dim)
@@ -46,51 +46,14 @@ class LatentEvolveRNNAgent(nn.Module):
         # self.rnn_hh_w_nn=nn.Linear(args.latent_dim,args.rnn_hidden_dim*args.rnn_hidden_dim)
         # self.rnn_hh_b_nn=nn.Linear(args.latent_dim,args.rnn_hidden_dim)
 
-        self.fc2_w_nn = nn.Linear(args.latent_dim*4, args.rnn_hidden_dim * args.n_actions)
-        self.fc2_b_nn = nn.Linear(args.latent_dim*4, args.n_actions)
+        self.fc2_w_nn = nn.Linear(args.latent_dim, args.rnn_hidden_dim * args.n_actions, bias=False)
+        self.fc2_b_nn = nn.Linear(args.latent_dim, args.n_actions,bias=False)
 
     def init_latent(self, bs):
         self.bs = bs
-        # self.latent=(self.mu_param + th.rand_like(self.mu_param)).unsqueeze(0).expand(bs,self.n_agents,self.latent_dim).reshape(-1,self.latent_dim)
-
-        # KL_neg=(self.mu_param-th.tensor([-5.0]*self.latent_dim)).norm(dim=1)
-        # KL_pos=(self.mu_param-th.tensor([ 5.0]*self.latent_dim)).norm(dim=1)
-        # loss=th.stack([KL_neg,KL_pos]).min(dim=0)[0].sum()
-
-        # oracle version for decoder, 3s5z
-        # role_s = th.randn(3,self.latent_dim)+5.0
-        # role_z = th.randn(5,self.latent_dim)-5.0
-        # self.latent = th.cat([
-        #    role_s,
-        #    role_z
-        # ],dim=0).unsqueeze(0).expand(bs, self.n_agents, self.latent_dim).reshape(-1, self.latent_dim)
-
-        # self.latent = F.relu(self.latent_fc1(self.latent))
-        # self.latent = F.relu(self.latent_fc2(self.latent))
-        # self.latent = F.relu(self.latent_fc3(self.latent))
         loss = 0
-        # end
 
         return loss, self.latent.detach()
-
-        # u = th.rand(self.n_agents, self.n_agents)
-        # g = - th.log(- th.log(u))
-        # c = (g + th.log(self.pi_param)).argmax(dim=1)
-
-        # self.latent = (self.mu_param[c] + th.randn_like(self.mu_param)).unsqueeze(0).expand(bs, self.n_agents,
-        #                                                                                    self.latent_dim).reshape(-1,
-        #                                                                                                             self.latent_dim)
-        # self.latent = self.latent / self.latent.norm(dim=0)
-
-        # mu_distance = (self.mu_param.unsqueeze(1) - self.mu_param.unsqueeze(0)).norm(dim=2)
-        # distance_weight = self.pi_param.unsqueeze(0) + self.pi_param.unsqueeze(1)
-        # loss = (distance_weight * mu_distance).sum()
-
-        # print(self.mu_param)
-
-        # return loss
-
-        # (bs*n,(obs+act+id)), (bs,n,hidden_dim), (bs,n,latent_dim)
 
     def forward(self, inputs, hidden_state):
         inputs = inputs.reshape(-1, self.input_shape)
@@ -101,7 +64,7 @@ class LatentEvolveRNNAgent(nn.Module):
         #latent_embed = self.latent.unsqueeze(0).expand(self.bs, self.n_agents, self.latent_dim * 2).reshape(
         #    self.bs * self.n_agents, self.latent_dim * 2)
 
-        latent_infer = F.relu(self.inference_fc1(th.cat([h_in, inputs[:, :-self.n_agents]], dim=1)))
+        latent_infer = F.relu(self.inference_fc1(th.cat([h_in.detach(), inputs[:, :-self.n_agents]], dim=1)))
         latent_infer = self.inference_fc2(latent_infer)  # (bs*n,latent_dim)
         #latent_infer[:, -self.latent_dim:] = th.exp(latent_infer[:, -self.latent_dim:])
 

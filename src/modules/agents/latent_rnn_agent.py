@@ -1,10 +1,9 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import torch as th
-from torch.distributions import MultivariateNormal
 from torch.distributions import kl_divergence
 import torch.distributions as D
-
+import .snail_blocks as snail
 
 class LatentRNNAgent(nn.Module):
     def __init__(self, input_shape, args):
@@ -118,28 +117,12 @@ class LatentRNNAgent(nn.Module):
         latent_infer[:, -self.latent_dim:] = th.exp(latent_infer[:, -self.latent_dim:])
 
         # sample
-        # gaussian_embed = MultivariateNormal(latent_embed[:, :self.latent_dim],th.diag_embed(latent_embed[:, self.latent_dim:])) #for torch 1.3.1
-        # gaussian_infer = MultivariateNormal(latent_infer[:, :self.latent_dim],th.diag_embed(latent_infer[:, self.latent_dim:]))
-        # var_embed = th.empty(self.bs * self.n_agents, self.latent_dim, self.latent_dim)
-        # var_infer = th.empty(self.bs * self.n_agents, self.latent_dim, self.latent_dim)
-        # for i in range(self.bs * self.n_agents):
-        #     var_embed[i] = th.diag(latent_embed[i, self.latent_dim:])
-        #     var_infer[i] = th.diag(latent_infer[i, self.latent_dim:])
-        # gaussian_embed = MultivariateNormal(latent_embed[:, :self.latent_dim], var_embed)
-        # gaussian_infer = MultivariateNormal(latent_infer[:, :self.latent_dim], var_infer)
-
         gaussian_embed = D.Normal(latent_embed[:, :self.latent_dim], (latent_embed[:, self.latent_dim:])**(1/2))
         gaussian_infer = D.Normal(latent_infer[:, :self.latent_dim], (latent_infer[:, self.latent_dim:])**(1/2))
 
         loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, gaussian_infer).sum()  # CE = H + KL
         loss = loss / (self.bs*self.n_agents)
         loss = th.log(1+th.exp(loss))
-        # handcrafted reparameterization
-        # (1,n*latent_dim)                            (1,n*latent_dim)==>(bs,n*latent*dim)
-        # latent_embed = self.latent[:,:self.latent_dim].reshape(1,-1)+self.latent[:,-self.latent_dim:].reshape(1,-1)*th.randn(self.bs,self.n_agents*self.latent_dim)
-        # latent_embed = latent_embed.reshape(-1,self.latent_dim)  #(bs*n,latent_dim)
-        # latent_infer = latent_infer[:, :self.latent_dim] + latent_infer[:, -self.latent_dim:] * th.randn_like(latent_infer[:, -self.latent_dim:])
-        # loss= (latent_embed-latent_infer).norm(dim=1).sum()/(self.bs*self.n_agents)
 
         latent = gaussian_embed.rsample()
 
