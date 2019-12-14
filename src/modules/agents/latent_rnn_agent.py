@@ -139,8 +139,8 @@ class LatentRNNAgent(nn.Module):
 
             latent_infer=self.infer_mod0(inputs_infer)
             latent_infer=self.infer_mod1(latent_infer)
-            latent_infer=self.infer_mod2(latent_infer)
-            latent_infer=self.infer_mod3(latent_infer).mean(dim=2).reshape(-1,self.latent_dim*2)
+            latent_infer=self.infer_mod2(latent_infer) #(bs*n,dim,t)
+            latent_infer=self.infer_mod3(latent_infer)[:,:,-1].reshape(-1,self.latent_dim*2)
 
             #latent_infer = F.relu(self.inference_fc1(th.cat([h_in.detach(), inputs[:, :-self.n_agents]], dim=1)))
             #latent_infer = self.inference_fc2(latent_infer)  # (n,2*latent_dim)==(n,mu+log var)
