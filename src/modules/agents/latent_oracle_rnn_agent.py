@@ -20,14 +20,11 @@ class LatentOracleRNNAgent(nn.Module):
         self.embed_fc_input_size = args.own_feature_size
         self.latent = th.rand(args.n_agents, args.latent_dim * 2)  # (n,mu+var)
 
-        self.latent_fc1 = nn.Linear(args.latent_dim, args.latent_dim * 4)
-        self.latent_fc2 = nn.Linear(args.latent_dim * 4, args.latent_dim * 4)
-
         self.fc1 = nn.Linear(input_shape, args.rnn_hidden_dim)
         self.rnn = nn.GRUCell(args.rnn_hidden_dim, args.rnn_hidden_dim)
 
-        self.fc2_w_nn = nn.Linear(self.embed_fc_input_size, args.rnn_hidden_dim * args.n_actions)
-        self.fc2_b_nn = nn.Linear(self.embed_fc_input_size, args.n_actions)
+        self.fc2_w_nn = nn.Linear(self.embed_fc_input_size, args.rnn_hidden_dim * args.n_actions,bias=False)
+        self.fc2_b_nn = nn.Linear(self.embed_fc_input_size, args.n_actions,bias=False)
 
     def init_latent(self, bs):
         self.bs = bs
