@@ -55,9 +55,10 @@ class LatentQLearner(QLearner):
         self.mac.init_hidden(batch.batch_size)
         mac_loss,mu_param=self.mac.init_latent(batch.batch_size)
 
-        #loss_cs=0
+        loss_ce=0
         for t in range(batch.max_seq_length):
-            agent_outs,loss_cs= self.mac.forward(batch, t=t) #(bs,n,n_actions),(bs,n,latent_dim)
+            agent_outs,loss_= self.mac.forward(batch, t=t) #(bs,n,n_actions),(bs,n,latent_dim)
+            loss_ce+=loss_
             #loss_cs=self.args.gamma*loss_cs + _loss
             mac_out.append(agent_outs) #[t,(bs,n,n_actions)]
             #mac_out_latent.append((agent_outs_latent)) #[t,(bs,n,latent_dim)]
@@ -127,7 +128,7 @@ class LatentQLearner(QLearner):
         #mac_out_latent_norm=th.sqrt(th.sum(mac_out_latent*mac_out_latent,dim=1))
         #mac_out_latent=mac_out_latent/mac_out_latent_norm[:,None]
         #loss+=(th.norm(mac_out_latent)/mac_out_latent.size(0))*self.args.entropy_loss_weight
-        loss+=loss_cs*self.args.entropy_loss_weight
+        loss+=loss_ce*self.args.entropy_loss_weight
 
         # Optimise
         self.optimiser.zero_grad()
