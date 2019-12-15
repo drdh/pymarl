@@ -122,7 +122,7 @@ class LatentRNNAgent(nn.Module):
         #self.latent[:,:self.latent_dim] = F.normalize(self.latent[:,:self.latent_dim].clone(),p=2,dim=1)
         self.latent[:, -self.latent_dim:] = th.exp(self.latent[:, -self.latent_dim:])  # var
         #latent_embed = self.latent.unsqueeze(0).expand(self.bs, self.n_agents, self.latent_dim * 2).reshape(
-        #    self.bs * self.n_agents, self.latent_dim * 2)
+        # self.bs * self.n_agents, self.latent_dim * 2)
 
         latent_embed = self.latent.reshape(self.bs*self.n_agents,self.latent_dim*2)
 
