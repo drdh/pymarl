@@ -51,6 +51,8 @@ class EpisodeRunner:
         terminated = False
         episode_return = 0
         self.mac.init_hidden(batch_size=self.batch_size)
+        if self.args.mac == "separate_mac":
+            self.mac.init_latent(batch_size=self.batch_size)
 
         while not terminated:
 
