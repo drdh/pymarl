@@ -26,7 +26,8 @@ class LatentRNNAgent(nn.Module):
         # self.mu_param = nn.Parameter(mu_param)
 
         #self.embed_fc_input_size = args.own_feature_size
-        self.embed_fc_input_size = input_shape
+        #self.embed_fc_input_size = input_shape
+        self.embed_fc_input_size=args.n_agents
 
         self.embed_fc1 = nn.Linear(self.embed_fc_input_size, args.latent_dim * 4)
         self.embed_fc2 = nn.Linear(args.latent_dim * 4, args.latent_dim * 2)
