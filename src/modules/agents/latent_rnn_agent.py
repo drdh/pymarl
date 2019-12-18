@@ -5,6 +5,7 @@ from torch.distributions import kl_divergence
 import torch.distributions as D
 from modules.agents import snail_blocks as snail
 import math
+from tensorboardX import SummaryWriter
 
 class LatentRNNAgent(nn.Module):
     def __init__(self, input_shape, args):
@@ -26,8 +27,8 @@ class LatentRNNAgent(nn.Module):
         # self.mu_param = nn.Parameter(mu_param)
 
         #self.embed_fc_input_size = args.own_feature_size
-        #self.embed_fc_input_size = input_shape
-        self.embed_fc_input_size=args.n_agents
+        self.embed_fc_input_size = input_shape
+        #self.embed_fc_input_size=args.n_agents
 
         self.embed_fc1 = nn.Linear(self.embed_fc_input_size, args.latent_dim * 4)
         self.embed_fc2 = nn.Linear(args.latent_dim * 4, args.latent_dim * 2)
@@ -89,6 +90,7 @@ class LatentRNNAgent(nn.Module):
         # self.latent = F.relu(self.latent_fc3(self.latent))
         loss = 0
         # end
+        self.writer = SummaryWriter("results/tb_logs/test/latent")
 
         return loss, self.latent[:self.n_agents,:].detach()
 
@@ -111,7 +113,7 @@ class LatentRNNAgent(nn.Module):
 
         # (bs*n,(obs+act+id)), (bs,n,hidden_dim), (bs,n,latent_dim)
 
-    def forward(self, inputs, hidden_state, t=0, batch=None):
+    def forward(self, inputs, hidden_state, t=0, batch=None, logger=None):
         inputs = inputs.reshape(-1, self.input_shape)
         h_in = hidden_state.reshape(-1, self.hidden_dim)
 
@@ -124,6 +126,8 @@ class LatentRNNAgent(nn.Module):
         self.latent[:, -self.latent_dim:] = th.exp(self.latent[:, -self.latent_dim:])  # var
         #latent_embed = self.latent.unsqueeze(0).expand(self.bs, self.n_agents, self.latent_dim * 2).reshape(
         # self.bs * self.n_agents, self.latent_dim * 2)
+        if self.args.runner=="episode":
+            self.writer.add_embedding(self.latent.reshape(-1,self.latent_dim*2),list(range(self.args.n_agents)),global_step=t,tag="latent-step")
 
         latent_embed = self.latent.reshape(self.bs*self.n_agents,self.latent_dim*2)
 

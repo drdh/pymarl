@@ -58,12 +58,12 @@ class LatentQLearner(QLearner):
         loss_ce=0
         for t in range(batch.max_seq_length):
             agent_outs,loss_= self.mac.forward(batch, t=t) #(bs,n,n_actions),(bs,n,latent_dim)
-            loss_ce=loss_
+            loss_ce+=loss_
             #loss_cs=self.args.gamma*loss_cs + _loss
             mac_out.append(agent_outs) #[t,(bs,n,n_actions)]
             #mac_out_latent.append((agent_outs_latent)) #[t,(bs,n,latent_dim)]
 
-        #loss_ce/=batch.max_seq_length
+        loss_ce/=batch.max_seq_length
 
         mac_out = th.stack(mac_out, dim=1)  # Concat over time
         #(bs,t,n,n_actions), Q values of n_actions
