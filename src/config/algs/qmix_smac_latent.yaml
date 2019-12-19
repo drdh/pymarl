@@ -28,7 +28,11 @@ agent: "latent_rnn"
 mac: "separate_mac"
 
 latent_dim: 2
-entropy_loss_weight : 0.01
+entropy_loss_weight : 1.0
+hg_dim: 16
+rec_loss_weight: 1.0
+ce_loss_weight: 1.0
+
 evolve_balance: 0.999
 snail_max_t: 128
 snail_key_size: 8
