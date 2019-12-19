@@ -91,6 +91,7 @@ class LatentRNNAgent(nn.Module):
         loss = 0
         # end
         self.writer = SummaryWriter("results/tb_logs/test/latent")
+        self.trajectory=[]
 
         return loss, self.latent[:self.n_agents,:].detach()
 
@@ -213,5 +214,22 @@ class LatentRNNAgent(nn.Module):
         # h_in = hidden_state.reshape(-1, self.args.rnn_hidden_dim) # (bs,n,dim) ==> (bs*n, dim)
         # h = self.rnn(x, h_in)
         # q = self.fc2(h)
+
+        h=h.reshape(-1, self.args.rnn_hidden_dim)
+
+        # continuity; 0<-->others
+        #self.trajectory.append(inputs[:self.n_agents])
+        #trajectory=th.cat(self.trajectory,dim=1)
+        #print(">>>", t) # th.cat([h_in, inputs[:, :-self.n_agents]], dim=1)
+        #t_dist = th.norm(trajectory[1:self.n_agents]-trajectory[0],dim=1)
+        #t_dist = th.norm(th.cat([h_in[1:self.n_agents], inputs[1:self.n_agents, :-self.n_agents]], dim=1)-th.cat([h_in[0], inputs[0, :-self.n_agents]]),dim=1)
+        #t_dist = th.norm(inputs[1:self.n_agents, :-self.n_agents] - inputs[0, :-self.n_agents], dim=1)
+        #h_dist = th.norm(h[1:self.n_agents] - h[0], dim=1)
+        #z_dist = th.norm(latent_infer[1:self.n_agents, :self.latent_dim] - latent_infer[0, :self.latent_dim], dim=1)
+        #print(t_dist)
+        #print(h_dist)
+        #print(z_dist)
+        # print(h_dist/z_dist)
+
         return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss
         # (bs*n,n_actions), (bs*n,hidden_dim), (bs*n,latent_dim)
