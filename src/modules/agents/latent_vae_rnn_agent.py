@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import torch as th
 from torch.distributions import kl_divergence
 import torch.distributions as D
+from tensorboardX import SummaryWriter
 
 class LatentVAERNNAgent(nn.Module):
     def __init__(self, input_shape, args):
@@ -49,9 +50,10 @@ class LatentVAERNNAgent(nn.Module):
     def init_latent(self, bs):
         self.bs = max(1, bs)
         loss = 0
+        self.writer = SummaryWriter("results/tb_logs/test/latent")
         return loss, self.latent[:self.n_agents,:].detach()
 
-    def forward(self, inputs, hidden_state, ep_batch=None, test_mode=None):
+    def forward(self, inputs, hidden_state,t=0,batch=None, test_mode=None):
         inputs = inputs.reshape(-1, self.input_shape)
         h_in = hidden_state.reshape(-1, self.hidden_dim)
 
@@ -108,5 +110,8 @@ class LatentVAERNNAgent(nn.Module):
 
         loss = self.ce_loss_weight * ce_loss + self.rec_loss_weight * rec_loss # CE = H + KL
         loss = loss / (self.bs * self.n_agents)
+
+        if self.args.runner=="episode":
+            self.writer.add_embedding(self.latent.reshape(-1,self.latent_dim*2),list(range(self.args.n_agents)),global_step=t,tag="latent-step")
 
         return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss
