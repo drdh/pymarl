@@ -103,10 +103,11 @@ class LatentVAERNNAgent(nn.Module):
         h_inference_gaussian = D.Normal(latent_decoder[:, :self.hg_dim], latent_decoder[:, self.hg_dim:])
 
         # Loss 1: CE loss between embed_z and inference_z
-        ce_loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, z_inference_gaussian_d).sum()
-
+        #ce_loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, z_inference_gaussian_d).sum()
+        ce_loss =  kl_divergence(gaussian_embed, z_inference_gaussian_d).sum()
         # Loss 2: Reconstruction loss of h
-        rec_loss = D.kl_divergence(h_gaussian, h_inference_gaussian).sum()
+        #rec_loss = D.kl_divergence(h_gaussian, h_inference_gaussian).sum()
+        rec_loss = h_gaussian.entropy().sum() + kl_divergence(h_gaussian, h_inference_gaussian).sum()
 
         loss = self.ce_loss_weight * ce_loss + self.rec_loss_weight * rec_loss # CE = H + KL
         loss = loss / (self.bs * self.n_agents)
