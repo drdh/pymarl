@@ -111,6 +111,7 @@ class LatentVAERNNAgent(nn.Module):
 
         loss = self.ce_loss_weight * ce_loss + self.rec_loss_weight * rec_loss # CE = H + KL
         loss = loss / (self.bs * self.n_agents)
+        loss = th.log(1+th.exp(loss))
 
         if self.args.runner=="episode":
             self.writer.add_embedding(self.latent.reshape(-1,self.latent_dim*2),list(range(self.args.n_agents)),global_step=t,tag="latent-step")
