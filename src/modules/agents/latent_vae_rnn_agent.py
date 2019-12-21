@@ -50,7 +50,8 @@ class LatentVAERNNAgent(nn.Module):
     def init_latent(self, bs):
         self.bs = max(1, bs)
         loss = 0
-        self.writer = SummaryWriter("results/tb_logs/test/latent")
+        if self.args.runner == "episode":
+            self.writer = SummaryWriter("results/tb_logs/test/latent")
         return loss, self.latent[:self.n_agents,:].detach()
 
     def forward(self, inputs, hidden_state,t=0,batch=None, test_mode=None):
