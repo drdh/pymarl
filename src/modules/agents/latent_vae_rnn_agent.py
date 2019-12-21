@@ -104,7 +104,7 @@ class LatentVAERNNAgent(nn.Module):
 
         # Loss 1: CE loss between embed_z and inference_z
         #ce_loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, z_inference_gaussian_d).sum()
-        ce_loss =  kl_divergence(gaussian_embed, z_inference_gaussian_d).sum()
+        ce_loss =  kl_divergence(z_inference_gaussian_d,gaussian_embed).sum()
         # Loss 2: Reconstruction loss of h
         #rec_loss = D.kl_divergence(h_gaussian, h_inference_gaussian).sum()
         rec_loss = h_gaussian.entropy().sum() + kl_divergence(h_gaussian, h_inference_gaussian).sum()
