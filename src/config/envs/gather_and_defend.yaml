@@ -22,7 +22,8 @@ env_args:
   reward_win: 5
   reward_defeat: 0.01
   reward_integrate: 20
-  reward_gather: 2
+  reward_pick: 2
+  reward_drop: 2
   reward_negative_scale: 0.5
   reward_scale: True
   reward_scale_rate: 20
