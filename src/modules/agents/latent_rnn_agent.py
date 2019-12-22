@@ -50,6 +50,7 @@ class LatentRNNAgent(nn.Module):
         #self.infer_mod3=nn.Conv1d(snail_input_dim+2*snail_value_size+snail_filters*layer_count,self.latent_dim*2,1) # in_channels, out_channels, kernel_size
 
         self.latent = th.rand(args.n_agents, args.latent_dim * 2)  # (n,mu+var)
+        self.latent0 =  th.rand(args.n_agents, args.latent_dim * 2)
 
         self.latent_fc1 = nn.Linear(args.latent_dim, args.latent_dim * 4)
         self.latent_fc2 = nn.Linear(args.latent_dim * 4, args.latent_dim * 4)
@@ -90,7 +91,8 @@ class LatentRNNAgent(nn.Module):
         # self.latent = F.relu(self.latent_fc3(self.latent))
         loss = 0
         # end
-        self.writer = SummaryWriter("results/tb_logs/test/latent")
+        if self.args.runner == "episode":
+            self.writer = SummaryWriter("results/tb_logs/test/latent")
         self.trajectory=[]
 
         return loss, self.latent[:self.n_agents,:].detach()
@@ -127,13 +129,19 @@ class LatentRNNAgent(nn.Module):
         self.latent[:, -self.latent_dim:] = th.exp(self.latent[:, -self.latent_dim:])  # var
         #latent_embed = self.latent.unsqueeze(0).expand(self.bs, self.n_agents, self.latent_dim * 2).reshape(
         # self.bs * self.n_agents, self.latent_dim * 2)
+        if t==0:
+            self.latent0 = F.relu(self.embed_fc1(embed_fc_input))
+            self.latent0 = self.embed_fc2(self.latent0)
+            self.latent0[:, -self.latent_dim:] = th.exp(self.latent0[:, -self.latent_dim:])
+            
         if self.args.runner=="episode":
             self.writer.add_embedding(self.latent.reshape(-1,self.latent_dim*2),list(range(self.args.n_agents)),global_step=t,tag="latent-step")
 
         latent_embed = self.latent.reshape(self.bs*self.n_agents,self.latent_dim*2)
-
         gaussian_embed = D.Normal(latent_embed[:, :self.latent_dim], (latent_embed[:, self.latent_dim:])**(1/2))
-
+        latent_embed0 = self.latent0.reshape(self.bs*self.n_agents,self.latent_dim*2).detach()
+        gaussian_embed0 = D.Normal(latent_embed0[:, :self.latent_dim], (latent_embed0[:, self.latent_dim:])**(1/2))
+        
         loss = 0
         #if t==batch.max_seq_length-1: #(B,D,T)
             #inputs_infer = []
@@ -156,19 +164,20 @@ class LatentRNNAgent(nn.Module):
         #    loss = loss / (self.bs*self.n_agents)
         #    loss = th.log(1+th.exp(loss))
 
-        latent_infer = F.relu(self.inference_fc1(th.cat([h_in.detach(), inputs[:, :-self.n_agents]], dim=1)))
-        latent_infer = self.inference_fc2(latent_infer)  # (n,2*latent_dim)==(n,mu+log var)
-        latent_infer[:, -self.latent_dim:] = th.exp(latent_infer[:, -self.latent_dim:])
-        gaussian_infer = D.Normal(latent_infer[:, :self.latent_dim], (latent_infer[:, self.latent_dim:]) ** (1 / 2))
+        #latent_infer = F.relu(self.inference_fc1(th.cat([h_in.detach(), inputs[:, :-self.n_agents]], dim=1)))
+        #latent_infer = self.inference_fc2(latent_infer)  # (n,2*latent_dim)==(n,mu+log var)
+        #latent_infer[:, -self.latent_dim:] = th.exp(latent_infer[:, -self.latent_dim:])
+        #gaussian_infer = D.Normal(latent_infer[:, :self.latent_dim], (latent_infer[:, self.latent_dim:]) ** (1 / 2))
 
-        loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, gaussian_infer).sum()  # CE = H + KL
+        #loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, gaussian_infer).sum()  # CE = H + KL
+        loss =  kl_divergence(gaussian_embed0,gaussian_embed).sum()
         loss = loss / (self.bs * self.n_agents)
         loss = th.log(1 + th.exp(loss))
 
         latent = gaussian_embed.rsample()
 
         latent = F.relu(self.latent_fc1(latent))
-        latent = (self.latent_fc2(latent))
+        latent = F.relu(self.latent_fc2(latent))
 
         # latent=latent.reshape(-1,self.args.latent_dim)
 
