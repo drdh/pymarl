@@ -30,10 +30,10 @@ env_args:
   debug: False
   sight_range: 9
   shoot_range: 1
-  map_x: 20
-  map_y: 20
-  base_x: 10
-  base_y: 10
+  map_x: 10
+  map_y: 10
+  base_x: 5
+  base_y: 5
   agent_health: 10
   enemy_health: 10
   agent_attack: 5
