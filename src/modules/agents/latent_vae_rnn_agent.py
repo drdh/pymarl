@@ -24,7 +24,7 @@ class LatentVAERNNAgent(nn.Module):
         self.embed_fc = nn.Linear(input_shape, args.latent_dim * 2)
 
         # h -> Gaussian
-        self.hg_fc1 = nn.Linear(args.rnn_hidden_dim, args.hg_dim * 4)
+        self.hg_fc1 = nn.Linear(args.rnn_hidden_dim + input_shape, args.hg_dim * 4)
         self.hg_fc2 = nn.Linear(args.hg_dim * 4, args.hg_dim * 2)
 
         # Encoder
@@ -81,7 +81,7 @@ class LatentVAERNNAgent(nn.Module):
         q = th.bmm(h, fc2_w) + fc2_b
 
         # hg Net
-        hg = F.relu(self.hg_fc1(h.detach().view(-1, self.args.rnn_hidden_dim)))
+        hg = F.relu(self.hg_fc1(th.cat([h.detach().view(-1, self.args.rnn_hidden_dim),inputs],dim=1)))
         hg = self.hg_fc2(hg)
         hg[:, -self.hg_dim:] = th.exp(hg[:, -self.hg_dim:])
         h_gaussian = D.Normal(hg[:, :self.hg_dim], hg[:, self.hg_dim:])
@@ -104,11 +104,11 @@ class LatentVAERNNAgent(nn.Module):
         h_inference_gaussian = D.Normal(latent_decoder[:, :self.hg_dim], latent_decoder[:, self.hg_dim:])
 
         # Loss 1: CE loss between embed_z and inference_z
-        #ce_loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, z_inference_gaussian_d).sum()
-        ce_loss =  kl_divergence(z_inference_gaussian_d,gaussian_embed).sum()
+        ce_loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, z_inference_gaussian_d).sum()
+        #ce_loss =  kl_divergence(z_inference_gaussian_d,gaussian_embed).sum()
         # Loss 2: Reconstruction loss of h
-        #rec_loss = D.kl_divergence(h_gaussian, h_inference_gaussian).sum()
-        rec_loss = h_gaussian.entropy().sum() + kl_divergence(h_gaussian, h_inference_gaussian).sum()
+        rec_loss = D.kl_divergence(h_gaussian, h_inference_gaussian).sum()
+        #rec_loss = h_gaussian.entropy().sum() + kl_divergence(h_gaussian, h_inference_gaussian).sum()
 
         loss = self.ce_loss_weight * ce_loss + self.rec_loss_weight * rec_loss # CE = H + KL
         loss = loss / (self.bs * self.n_agents)
