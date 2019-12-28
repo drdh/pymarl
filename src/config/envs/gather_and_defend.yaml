@@ -29,6 +29,7 @@ env_args:
   reward_scale_rate: 20
   debug: False
   use_p_pick: False
+  use_p_attack: False
   sight_range: 9
   shoot_range: 1
   map_x: 10
