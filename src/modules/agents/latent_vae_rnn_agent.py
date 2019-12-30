@@ -93,7 +93,7 @@ class LatentVAERNNAgent(nn.Module):
         latent_encoder[:, -self.latent_dim:] = th.exp(latent_encoder[:, -self.latent_dim:])
         z_inference_gaussian = D.Normal(latent_encoder[:, :self.latent_dim], latent_encoder[:, self.latent_dim:])
 
-        latent_encoder_d = latent_encoder.detach()
+        latent_encoder_d = latent_encoder#.detach()
         z_inference_gaussian_d = D.Normal(latent_encoder_d[:, :self.latent_dim], latent_encoder_d[:, self.latent_dim:])
         z_inference_sample = z_inference_gaussian.rsample()
 
