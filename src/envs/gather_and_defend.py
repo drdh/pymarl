@@ -243,8 +243,8 @@ class GatherDefendEnv(MultiAgentEnv):
 
         self.enemies = {}
         for enemy_id in range(self.n_enemies):
-            self.enemies[enemy_id] = Unit(10, #random.randint(1, self.map_x), #self.base_x + 2
-                                          10, #random.randint(1, self.map_y), #self.base_y + 2
+            self.enemies[enemy_id] = Unit(random.randint(self.map_x-self.base_diff, self.map_x), #self.base_x + 2
+                                          random.randint(self.map_y-self.base_diff, self.map_y), #self.base_y + 2
                                           self.enemy_health,
                                           self.n_resources)
 
@@ -307,8 +307,8 @@ class GatherDefendEnv(MultiAgentEnv):
                 attack_reward += self.reward_death_value
                 attack_reward += self.reward_defeat * self.enemies[enemy_id].health
 
-                self.enemies[enemy_id] = Unit(10, # random.randint(1, self.map_x), #self.base_x + 2
-                                              10, # random.randint(1, self.map_y),#self.base_y + 2
+                self.enemies[enemy_id] = Unit( random.randint(self.map_x-self.base_diff, self.map_x), #self.base_x + 2
+                                               random.randint(self.map_y-self.base_diff, self.map_y), #self.base_y + 2
                                                self.enemy_health,
                                                self.n_resources)
                 self.kill_number += 1
