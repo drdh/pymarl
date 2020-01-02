@@ -240,15 +240,15 @@ class GatherDefendEnv(MultiAgentEnv):
     def init_units(self):
         self.agents = {}
         for agent_id in range(self.n_agents):
-            self.agents[agent_id] = Unit(random.randint(self.base_x, self.base_x+self.base_diff), #self.base_x
-                                         random.randint(self.base_y, self.base_y+self.base_diff), #self.base_y
+            self.agents[agent_id] = Unit(5,#random.randint(self.base_x, self.base_x+self.base_diff), #self.base_x
+                                         5,#random.randint(self.base_y, self.base_y+self.base_diff), #self.base_y
                                          self.agent_health,
                                          self.n_resources)
 
         self.enemies = {}
         for enemy_id in range(self.n_enemies):
-            self.enemies[enemy_id] = Unit(random.randint(self.map_x-self.base_diff, self.map_x), #self.base_x + 2
-                                          random.randint(self.map_y-self.base_diff, self.map_y), #self.base_y + 2
+            self.enemies[enemy_id] = Unit(10,#random.randint(self.map_x-self.base_diff, self.map_x), #self.base_x + 2
+                                          10,#random.randint(self.map_y-self.base_diff, self.map_y), #self.base_y + 2
                                           self.enemy_health,
                                           self.n_resources)
 
@@ -311,8 +311,8 @@ class GatherDefendEnv(MultiAgentEnv):
                 attack_reward += self.reward_death_value
                 attack_reward += self.reward_defeat * self.enemies[enemy_id].health
 
-                self.enemies[enemy_id] = Unit( random.randint(self.map_x-self.base_diff, self.map_x), #self.base_x + 2
-                                               random.randint(self.map_y-self.base_diff, self.map_y), #self.base_y + 2
+                self.enemies[enemy_id] = Unit( 10,#random.randint(self.map_x-self.base_diff, self.map_x), #self.base_x + 2
+                                               10,#random.randint(self.map_y-self.base_diff, self.map_y), #self.base_y + 2
                                                self.enemy_health,
                                                self.n_resources)
                 self.kill_number += 1
