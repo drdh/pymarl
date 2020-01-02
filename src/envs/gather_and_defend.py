@@ -240,8 +240,8 @@ class GatherDefendEnv(MultiAgentEnv):
     def init_units(self):
         self.agents = {}
         for agent_id in range(self.n_agents):
-            self.agents[agent_id] = Unit(5,#random.randint(self.base_x, self.base_x+self.base_diff), #self.base_x
-                                         5,#random.randint(self.base_y, self.base_y+self.base_diff), #self.base_y
+            self.agents[agent_id] = Unit(random.randint(self.base_x, self.base_x+self.base_diff), #self.base_x
+                                         random.randint(self.base_y, self.base_y+self.base_diff), #self.base_y
                                          self.agent_health,
                                          self.n_resources)
 
