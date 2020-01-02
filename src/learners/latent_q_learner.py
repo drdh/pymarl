@@ -53,7 +53,7 @@ class LatentQLearner(QLearner):
         mac_out = []
 
         self.mac.init_hidden(batch.batch_size)
-        mac_loss,mu_param=self.mac.init_latent(batch.batch_size)
+        mac_loss,latent,latent_vae=self.mac.init_latent(batch.batch_size)
 
         loss_ce=0
         for t in range(batch.max_seq_length):
@@ -163,8 +163,8 @@ class LatentQLearner(QLearner):
 
             if self.args.use_tensorboard:
                 #log_vec(self,mat,metadata,label_img,global_step,tag)
-                self.logger.log_vec(mu_param,list(range(self.args.n_agents)),t_env,"latent")
-
+                self.logger.log_vec(latent,list(range(self.args.n_agents)),t_env,"latent")
+                self.logger.log_vec(latent_vae, list(range(self.args.n_agents)), t_env, "latent-VAE")
             self.log_stats_t = t_env
 
     def _update_targets(self):

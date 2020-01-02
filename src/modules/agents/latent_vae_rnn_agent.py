@@ -36,6 +36,7 @@ class LatentVAERNNAgent(nn.Module):
         self.decoder_fc2 = nn.Linear(args.hg_dim, args.hg_dim * 2)
 
         self.latent = th.rand(args.n_agents, args.latent_dim * 2)  # (n,mu+var)
+        self.latent_vae = th.rand(args.n_agents, args.latent_dim * 2)
 
         # latent -> FC2 parameter
         self.latent_fc1 = nn.Linear(args.latent_dim, args.latent_dim * 4)
@@ -52,7 +53,7 @@ class LatentVAERNNAgent(nn.Module):
         loss = 0
         if self.args.runner == "episode":
             self.writer = SummaryWriter("results/tb_logs/test/latent")
-        return loss, self.latent[:self.n_agents,:].detach()
+        return loss, self.latent[:self.n_agents,:].detach(),self.latent_vae[:self.n_agents,:]
 
     def forward(self, inputs, hidden_state,t=0,batch=None, test_mode=None):
         inputs = inputs.reshape(-1, self.input_shape)
@@ -96,6 +97,7 @@ class LatentVAERNNAgent(nn.Module):
         latent_encoder_d = latent_encoder.detach()
         z_inference_gaussian_d = D.Normal(latent_encoder_d[:, :self.latent_dim], latent_encoder_d[:, self.latent_dim:])
         z_inference_sample = z_inference_gaussian.rsample()
+        self.latent_vae = z_inference_sample
 
         # Decoder
         latent_decoder = F.relu(self.decoder_fc1(z_inference_sample))
