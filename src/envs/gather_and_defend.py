@@ -177,11 +177,12 @@ class GatherDefendEnv(MultiAgentEnv):
         self.kill_number = 0
 
         # Map info
-        max_kill = self.episode_limit // (self.enemy_health // self.agent_attack) * self.n_enemies
-        max_integrate = self.episode_limit
+        #max_kill = self.episode_limit // (self.enemy_health // self.agent_attack) * self.n_enemies
+        max_kill = self.episode_limit*self.n_enemies
+        max_integrate = self.episode_limit//((self.base_x + self.base_y)*(self.n_resources*(self.n_resources+1)/2))
         self.max_reward = (max_kill * (self.reward_death_value + self.enemy_health * self.reward_defeat)
                            + self.reward_win
-                           + max_integrate * (self.reward_pick + self.reward_drop + self.reward_integrate))
+                           + max_integrate * ((self.reward_pick + self.reward_drop)*(self.n_resources*(self.n_resources+1)/2) + self.reward_integrate))
 
         self.agents = {}
         self.enemies = {}
