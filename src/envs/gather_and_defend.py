@@ -184,6 +184,10 @@ class GatherDefendEnv(MultiAgentEnv):
                            + self.reward_win
                            + max_integrate * ((self.reward_pick + self.reward_drop)*(self.n_resources*(self.n_resources+1)/2) + self.reward_integrate))
 
+        self.GATHER_MAX = self.episode_limit // (self.base_x + self.base_y) #per agent
+        self.ATTACK_MAX = self.episode_limit # per agent
+
+
         self.agents = {}
         self.enemies = {}
         self._episode_count = 0
@@ -572,12 +576,12 @@ class GatherDefendEnv(MultiAgentEnv):
             own_feats[ind] = float(unit.loaded)
             ind += 1
             for resource_i in range(self.n_resources):
-                own_feats[ind] = float(unit.resources_loaded[resource_i])
+                own_feats[ind] = float(unit.resources_loaded[resource_i]/self.GATHER_MAX)
                 ind += 1
             for resource_i in range(self.n_resources):
-                own_feats[ind] = float(unit.resources_gathered[resource_i])
+                own_feats[ind] = float(unit.resources_gathered[resource_i]/self.GATHER_MAX)
                 ind +=1
-            own_feats[ind] = float(unit.attack_num)
+            own_feats[ind] = float(unit.attack_num/self.ATTACK_MAX)
 
         x = unit.pos.x
         y = unit.pos.y
@@ -645,12 +649,12 @@ class GatherDefendEnv(MultiAgentEnv):
                 ally_state[al_id, 3] = float(al_unit.loaded)
                 ind = 4
                 for resource_i in range(self.n_resources):
-                    ally_state[al_id, ind] = float(al_unit.resources_loaded[resource_i])
+                    ally_state[al_id, ind] = float(al_unit.resources_loaded[resource_i]/self.GATHER_MAX)
                     ind += 1
                 for resource_i in range(self.n_resources):
-                    ally_state[al_id, ind] = float(al_unit.resources_gathered[resource_i])
+                    ally_state[al_id, ind] = float(al_unit.resources_gathered[resource_i]/self.GATHER_MAX)
                     ind +=1
-                ally_state[al_id, ind] = float(al_unit.attack_num)
+                ally_state[al_id, ind] = float(al_unit.attack_num/self.ATTACK_MAX)
 
         for e_id, e_unit in self.enemies.items():
             if e_unit.health > 0:
