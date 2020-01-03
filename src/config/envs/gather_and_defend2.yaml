@@ -14,35 +14,34 @@ env_args:
   obs_terrain_height: False
   obs_instead_of_state: False
   obs_timestep_number: False
-  obs_resources: False
   state_last_action: True
   state_timestep_number: False
   reward_sparse: False
   reward_only_positive: True
   reward_death_value: 0.5
-  reward_win: 2.0
-  reward_defeat: 0.1
-  reward_pick_up: 0.5
+  reward_win: 5
+  reward_defeat: 0.01
   reward_integrate: 20
-  reward_gather: 1.0
+  reward_pick: 2
+  reward_drop: 2
   reward_negative_scale: 0.5
   reward_scale: True
   reward_scale_rate: 20
   debug: False
+  use_p_pick: False
+  use_p_attack: False
   sight_range: 9
   shoot_range: 1
   map_x: 10
   map_y: 10
+  base_x: 5
+  base_y: 5
   agent_health: 10
   enemy_health: 10
   agent_attack: 5
   enemy_attack: 2
   base_health: 150
   n_resources: 2
-  proficiency: False
-  proficiency_start: 0.4
-  proficiency_end: 0.9
-  barrack: True
 
 
 learner_log_interval: 20000

@@ -29,7 +29,13 @@ class Unit:
         self.health = health_max
         self.resources_loaded = np.array([False for _ in range(n_resources)])
         self.loaded = False
+        self.resources_gathered = np.array([0.0 for _ in range(n_resources)])
+        self.attack_num = 0.0
 
+        self.info={}
+        self.info.update({"pick_{}".format(i):0 for i in range(n_resources)})
+        self.info.update({"drop_{}".format(i):0 for i in range(n_resources)})
+        self.info.update({"attack":0})
 
 class Resource:
     def __init__(self, x, y):
@@ -48,34 +54,6 @@ class Building:
 resources_pos = [Pos(1, 5),
                  Pos(5, 1),
                  Pos(1, 1)]
-
-
-# action_name = {0: 'noop',
-#                1: 'step',
-#                2: 'north',
-#                3: 'south',
-#                4: 'east',
-#                5: 'west',
-#                6: 'attack 0',
-#                7: "attack 1",
-#                8: "gather res 1",
-#                9: "put res 1",
-#                10: "gather res 2",
-#                11: "put res 2"
-#                }
-
-action_name = {0: 'noop',
-               1: 'step',
-               2: 'north',
-               3: 'south',
-               4: 'east',
-               5: 'west',
-               6: 'attack 0',
-               7: "gather res 1",
-               8: "put res 1",
-               9: "gather res 2",
-               10: "put res 2"
-               }
 
 
 class GatherDefendEnv(MultiAgentEnv):
@@ -98,7 +76,6 @@ class GatherDefendEnv(MultiAgentEnv):
             obs_terrain_height=False,
             obs_instead_of_state=False,
             obs_timestep_number=False,
-            obs_resources=False,
             state_last_action=True,
             state_timestep_number=False,
             reward_sparse=False,
@@ -106,30 +83,30 @@ class GatherDefendEnv(MultiAgentEnv):
             reward_death_value=0.5,
             reward_win=5,
             reward_defeat=0.01,
-            reward_pick_up=0.5,
             reward_integrate=20,
-            reward_gather=2,
+            reward_pick=2,
+            reward_drop=2,
             reward_negative_scale=0.5,
             reward_scale=True,
             reward_scale_rate=40,
             debug=False,
+            use_p_pick=False,
+            use_p_attack=False,
             sight_range=9,
             shoot_range=1,
-            map_x=10,
-            map_y=10,
+            map_x=20,
+            map_y=20,
+            base_x=10,
+            base_y=10,
             agent_health=10,
             enemy_health=10,
             agent_attack=5,
             enemy_attack=2,
             base_health=150,
             n_resources=2,
-            seed=None,
-            proficiency=False,
-            proficiency_start=0.4,
-            proficiency_end=0.9,
-            barrack=True
+            seed=None
     ):
-        # Map arguments
+        # Map arguments
         self.sight_range = sight_range
         self.shoot_range = shoot_range
 
@@ -145,7 +122,8 @@ class GatherDefendEnv(MultiAgentEnv):
         self.obs_enemy_health = obs_enemy_health
         self.obs_instead_of_state = obs_instead_of_state
         self.obs_last_action = obs_last_action
-        self.obs_resources = obs_resources
+        self.obs_pathing_grid = obs_pathing_grid
+        self.obs_terrain_height = obs_terrain_height
         self.state_last_action = state_last_action
         if self.obs_all_health:
             self.obs_own_health = True
@@ -158,8 +136,8 @@ class GatherDefendEnv(MultiAgentEnv):
         self.reward_integrate = reward_integrate
         self.reward_win = reward_win
         self.reward_defeat = reward_defeat
-        self.reward_pick_up = reward_pick_up
-        self.reward_gather = reward_gather
+        self.reward_pick = reward_pick
+        self.reward_drop = reward_drop
         self.reward_scale = reward_scale
         self.reward_scale_rate = reward_scale_rate
 
@@ -169,6 +147,9 @@ class GatherDefendEnv(MultiAgentEnv):
         self._seed = random.randint(0, 9999)
         np.random.seed(self._seed)
         self.debug = debug
+        self.use_p_pick=use_p_pick
+        self.use_p_attack=use_p_attack
+        self.base_diff=2
 
         # Actions
         self.n_actions_no_attack = 6
@@ -183,29 +164,29 @@ class GatherDefendEnv(MultiAgentEnv):
         self.agent_attack = agent_attack
         self.enemy_attack = enemy_attack
         self.base_health = base_health
-        self.barrack_health = base_health
-        self.has_barrack = barrack
 
         # Resources
-        self.base_x = 5
-        self.base_y = 5
-        self.barrack_x = 7
-        self.barrack_y = 7
+        self.base_x = base_x
+        self.base_y = base_y
         self.resources = dict()
         for resources_id in range(self.n_resources):
             resource_pos = resources_pos[resources_id]
             self.resources[resources_id] = Resource(resource_pos.x, resource_pos.y) # TODO: observe base, resources
         self.base = Building(self.base_x, self.base_y, self.base_health, self.n_resources) # TODO: Initialize
-        self.barrack = Building(self.barrack_x, self.barrack_y, self.base_health, self.n_resources)
         self.integrated = 0
         self.kill_number = 0
 
         # Map info
-        max_kill = self.episode_limit // (self.enemy_health // self.agent_attack) * self.n_enemies
-        max_integrate = self.episode_limit / 8
+        #max_kill = self.episode_limit // (self.enemy_health // self.agent_attack) * self.n_enemies
+        max_kill = self.episode_limit*self.n_enemies
+        max_integrate = self.episode_limit//((self.base_x + self.base_y)*(self.n_resources*(self.n_resources+1)/2))
         self.max_reward = (max_kill * (self.reward_death_value + self.enemy_health * self.reward_defeat)
                            + self.reward_win
-                           + max_integrate * self.reward_integrate)
+                           + max_integrate * ((self.reward_pick + self.reward_drop)*(self.n_resources*(self.n_resources+1)/2) + self.reward_integrate))
+
+        self.GATHER_MAX = self.episode_limit // (self.base_x + self.base_y) #per agent
+        self.ATTACK_MAX = self.episode_limit # per agent
+
 
         self.agents = {}
         self.enemies = {}
@@ -225,13 +206,6 @@ class GatherDefendEnv(MultiAgentEnv):
         self.last_action = np.zeros((self.n_agents, self.n_actions))
         self.map_x = map_x
         self.map_y = map_y
-        self.proficiency = proficiency
-        self.proficiency_start = proficiency_start
-        self.proficiency_max = proficiency_end
-        self.proficiency_step = 2 * (proficiency_end - proficiency_start) / (episode_limit / 8)
-
-        if self.debug:
-            self.action_count = {agent_i: [0 for _ in range(self.n_resources * 2 + 1)] for agent_i in range(self.n_agents)}
         self.reset()
 
     def reset(self):
@@ -249,7 +223,6 @@ class GatherDefendEnv(MultiAgentEnv):
         self.previous_enemy_units = None
 
         self.last_action = np.zeros((self.n_agents, self.n_actions))
-        self.n_pickup = np.zeros([self.n_agents, self.n_resources])
 
         # self._obs = self._controller.observe()
         self.init_units()
@@ -262,33 +235,20 @@ class GatherDefendEnv(MultiAgentEnv):
             self.resources[resources_id] = Resource(resource_pos.x, resource_pos.y)
 
         self.base = Building(self.base_x, self.base_y, self.base_health, self.n_resources)
-        self.barrack = Building(self.barrack_x, self.barrack_y, self.base_health, self.n_resources)
-
         self.integrated = 0
 
     def init_units(self):
         self.agents = {}
-        if self.has_barrack:
-            for agent_id in range(self.n_agents):
-                self.agents[agent_id] = Unit(random.randint(1, self.barrack_x),
-                                             random.randint(1, self.barrack_y),
-                                             self.agent_health,
-                                             self.n_resources)
-        else:
-            for agent_id in range(self.n_agents):
-                self.agents[agent_id] = Unit(random.randint(1, self.base_x),
-                                             random.randint(1, self.base_y),
-                                             self.agent_health,
-                                             self.n_resources)
+        for agent_id in range(self.n_agents):
+            self.agents[agent_id] = Unit(random.randint(1, self.base_x+self.base_diff), #self.base_x
+                                         random.randint(1, self.base_y+self.base_diff), #self.base_y
+                                         self.agent_health,
+                                         self.n_resources)
 
         self.enemies = {}
         for enemy_id in range(self.n_enemies):
-            # self.enemies[enemy_id] = Unit(random.randint(self.base_x + 2, self.map_x),
-            #                               random.randint(self.base_y + 2, self.map_y),
-            #                               self.enemy_health,
-            #                               self.n_resources)
-            self.enemies[enemy_id] = Unit(self.map_x,
-                                          self.map_y,
+            self.enemies[enemy_id] = Unit(10,#random.randint(self.map_x-self.base_diff, self.map_x), #self.base_x + 2
+                                          10,#random.randint(self.map_y-self.base_diff, self.map_y), #self.base_y + 2
                                           self.enemy_health,
                                           self.n_resources)
 
@@ -313,63 +273,39 @@ class GatherDefendEnv(MultiAgentEnv):
             elif action == 5:
                 unit.pos.x -= self._move_amount
             elif self.n_actions_no_attack <= action < self.n_actions_no_attack + self.n_enemies:
-                target_id = action - self.n_actions_no_attack
-                attack_value[target_id] += self.agent_attack
+                if not self.use_p_attack or np.random.binomial(1,1.0/(1+np.exp(-unit.attack_num)))==1:
+                    target_id = action - self.n_actions_no_attack
+                    attack_value[target_id] += self.agent_attack
+                    unit.attack_num+=1
+                    unit.info["attack"]+=1
+
             elif action >= self.n_actions_no_resources:
                 res_i = (action - self.n_actions_no_resources) // 2
                 gather_down = (action - self.n_actions_no_attack - self.n_enemies) % 2
 
-                if gather_down:
+                if gather_down: #unit.loaded==True
+                    # try:
                     assert unit.resources_loaded[res_i], "Agent {} does not have resource {}".format(agent_id, res_i)
-
-                    reward_gather = self.reward_gather
-                    if res_i == 1:
-                        if self.base.resources_amount[0] >= self.base.resources_amount[1] / 2:
-                            reward_gather *= 5
-                        else:
-                            reward_gather /= 2
-                    else:
-                        if self.base.resources_amount[0] <= self.base.resources_amount[1] / 2:
-                            reward_gather *= 5
-                        else:
-                            reward_gather /= 2
-
+                    # except:
+                    #     a=1
                     self.base.resources_amount[res_i] += 1
                     unit.resources_loaded[res_i] = False
                     unit.loaded = False
-
-                    attack_reward += reward_gather
+                    unit.info["drop_{}".format(res_i)]+=1
+                    attack_reward += self.reward_drop
                 else:
-                    reward_pickup = self.reward_pick_up
-                    if res_i == 1:
-                        if self.base.resources_amount[0] >= self.base.resources_amount[1] / 2:
-                            reward_pickup *= 5
-                        else:
-                            reward_pickup /= 2
-                    else:
-                        if self.base.resources_amount[0] <= self.base.resources_amount[1] / 2:
-                            reward_pickup *= 5
-                        else:
-                            reward_pickup /= 2
-
-                    if self.proficiency:
-                        gather_prob = self.proficiency_start + self.proficiency_step * self.n_pickup[agent_id][res_i]
-                        if random.random() < gather_prob:
-                            assert unit.loaded is False, "Agent {} is loaded when trying to gather resource {}".format(agent_id, res_i)
-
-                            unit.resources_loaded[res_i] = True
-                            unit.loaded = True
-                            attack_reward += reward_pickup / gather_prob
-
-                        self.n_pickup[agent_id][res_i] += 1
-                    else:
-                        assert unit.loaded is False, "Agent {} is loaded when trying to gather resource {}".format(
-                            agent_id, res_i)
-
+                    # try:
+                    assert unit.loaded is False, "Agent {} is loaded when trying to gather resource {}".format(agent_id, res_i)
+                    # except:
+                    #     a=1
+                    if not self.use_p_pick or np.random.binomial(1,1.0/(1+np.exp(-unit.resources_gathered[res_i])))==1:
                         unit.resources_loaded[res_i] = True
                         unit.loaded = True
-                        attack_reward += reward_pickup
-                        self.n_pickup[agent_id][res_i] += 1
+                        unit.resources_gathered[res_i] +=1
+                        unit.info["pick_{}".format(res_i)]+=1
+                        needed_ratio=(res_i+1)/(self.n_resources*(self.n_resources+1)/2)
+                        actual_ratio=(self.base.resources_amount[res_i]+1)/(sum(self.base.resources_amount)+1)
+                        attack_reward += self.reward_pick*(needed_ratio/actual_ratio)
 
         # Attack
         for enemy_id in range(self.n_enemies):
@@ -377,14 +313,10 @@ class GatherDefendEnv(MultiAgentEnv):
                 attack_reward += self.reward_death_value
                 attack_reward += self.reward_defeat * self.enemies[enemy_id].health
 
-                # self.enemies[enemy_id] = Unit(random.randint(self.base_x + 2, self.map_x),
-                #                                random.randint(self.base_y + 2, self.map_y),
-                #                                self.enemy_health,
-                #                                self.n_resources)
-                self.enemies[enemy_id] = Unit(self.map_x,
-                                              self.map_y,
-                                              self.enemy_health,
-                                              self.n_resources)
+                self.enemies[enemy_id] = Unit( 10,#random.randint(self.map_x-self.base_diff, self.map_x), #self.base_x + 2
+                                               10,#random.randint(self.map_y-self.base_diff, self.map_y), #self.base_y + 2
+                                               self.enemy_health,
+                                               self.n_resources)
                 self.kill_number += 1
             else:
                 attack_reward += self.reward_defeat * attack_value[enemy_id]
@@ -394,33 +326,24 @@ class GatherDefendEnv(MultiAgentEnv):
 
     def enemy_step(self):
         game_end_code = None
+        for enemy_id, enemy in self.enemies.items():
+            if self.can_reach(enemy.pos, Pos(self.base.pos.x+self.base_diff,self.base.pos.y+self.base_diff)):
+                self.base.health -= self.enemy_attack
+            else:
+                if enemy.pos.x > self.base_x+self.base_diff:
+                    enemy.pos.x -= 1
 
-        if self.has_barrack:
-            for enemy_id, enemy in self.enemies.items():
-                if self.can_reach(enemy.pos, self.barrack.pos):
-                    self.barrack.health -= self.enemy_attack
-                else:
-                    if enemy.pos.x > self.barrack_x:
-                        enemy.pos.x -= 1
+                elif enemy.pos.y > self.base_y+self.base_diff:
+                    enemy.pos.y -= 1
 
-                    if enemy.pos.y > self.barrack_y:
-                        enemy.pos.y -= 1
+                #elif enemy.pos.x < self.base_x+self.base_diff:
+                #    enemy.pos.x += 1
 
-            if self.barrack.health <= 0:
-                game_end_code = -1
-        else:
-            for enemy_id, enemy in self.enemies.items():
-                if self.can_reach(enemy.pos, self.base.pos):
-                    self.base.health -= self.enemy_attack
-                else:
-                    if enemy.pos.x > self.base_x:
-                        enemy.pos.x -= 1
+                #elif enemy.pos.y < self.base_y+self.base_diff:
+                #    enemy.pos.y += 1
 
-                    if enemy.pos.y > self.base_y:
-                        enemy.pos.y -= 1
-
-            if self.base.health <= 0:
-                game_end_code = -1
+        if self.base.health <= 0:
+            game_end_code = -1
 
         return game_end_code
 
@@ -456,26 +379,6 @@ class GatherDefendEnv(MultiAgentEnv):
     def step(self, actions):
         """A single environment step. Returns reward, terminated, info."""
         actions = [int(a) for a in actions]
-
-        if self.debug:
-            print(">>>")
-            for agent_id, action_ in enumerate(actions):
-                print(agent_id, self.agents[agent_id].pos.x, self.agents[agent_id].pos.y,
-                      action_name[action_])
-
-                if self.n_actions_no_attack <= action_ < self.n_actions_no_attack + self.n_enemies:
-                    self.action_count[agent_id][0] += 1
-                elif action_ == self.n_actions_no_resources:
-                    self.action_count[agent_id][1] += 1
-                elif action_ == self.n_actions_no_resources+1:
-                    self.action_count[agent_id][2] += 1
-                elif action_ == self.n_actions_no_resources+2:
-                    self.action_count[agent_id][3] += 1
-                elif action_ == self.n_actions_no_resources+3:
-                    self.action_count[agent_id][4] += 1
-
-            for enemy in self.enemies.values():
-                print(enemy.pos.x, enemy.pos.y)
 
         self.last_action = np.eye(self.n_actions)[np.array(actions)]
 
@@ -520,6 +423,18 @@ class GatherDefendEnv(MultiAgentEnv):
                 info["episode_limit"] = True
             self.battles_game += 1
 
+        if self.debug:
+            positions=[]
+            positions.append((self.base.health,))
+            for agent_id in range(self.n_agents):
+                unit = self.agents[agent_id]
+                positions.append((agent_id,unit.pos.x, unit.pos.y, unit.resources_loaded))
+            for enemy_id in range(self.n_enemies):
+                unit = self.enemies[enemy_id]
+                positions.append((enemy_id,unit.pos.x,unit.pos.y,unit.health))
+
+            print("[ ",self._episode_steps, ", ",positions,"], ")
+
         if terminated:
             self._episode_count += 1
             info["integrated"] = self.integrated
@@ -528,24 +443,14 @@ class GatherDefendEnv(MultiAgentEnv):
             info["kill"] = self.kill_number
 
             if self.debug:
-                if info["battle_won"]:
-                  print("win")
-                else:
-                    print("lose")
-
                 for agent_id in range(self.n_agents):
-                    print('Agent {} attack {} times, hold {} times, gather {}, hold {}, gather{}'.format(
-                        agent_id, *self.action_count[agent_id]))
-                self.action_count = {agent_i: [0 for _ in range(self.n_resources * 2 + 1)] for agent_i in
-                                     range(self.n_agents)}
-                print('Kill:', self.kill_number)
-                print("Gather:", self.integrated)
-                print('Leave:', self.base.resources_amount)
+                    unit=self.agents[agent_id]
+                    print(unit.info)
 
         if self.reward_scale:
             reward /= self.max_reward / self.reward_scale_rate
 
-        # print(reward)
+
 
         return reward, terminated, info
 
@@ -589,7 +494,9 @@ class GatherDefendEnv(MultiAgentEnv):
         nf_own = 0
         if self.obs_own_health:
             nf_own += 1
-        nf_own += 1 + self.n_resources
+        nf_own += 1 + self.n_resources*2+1 #specialization
+
+
 
         move_feats_len = self.n_actions_move
 
@@ -598,8 +505,7 @@ class GatherDefendEnv(MultiAgentEnv):
         ally_feats = np.zeros((self.n_agents - 1, nf_al), dtype=np.float32)
         own_feats = np.zeros(nf_own, dtype=np.float32)
         resources_feats = np.zeros(2*self.n_resources, np.float32)
-        base_feats = np.zeros(3 + self.n_resources, np.float32)
-        barrack_feats = np.zeros(3, np.float32)
+        base_feats = np.zeros(3 + self.n_resources + self.base.max_health+1, np.float32)
 
         if unit.health > 0:  # otherwise dead, return all zeros
             x = unit.pos.x
@@ -672,8 +578,12 @@ class GatherDefendEnv(MultiAgentEnv):
             own_feats[ind] = float(unit.loaded)
             ind += 1
             for resource_i in range(self.n_resources):
-                own_feats[ind] = float(unit.resources_loaded[resource_i])
+                own_feats[ind] = float(unit.resources_loaded[resource_i]/self.GATHER_MAX)
                 ind += 1
+            for resource_i in range(self.n_resources):
+                own_feats[ind] = float(unit.resources_gathered[resource_i]/self.GATHER_MAX)
+                ind +=1
+            own_feats[ind] = float(unit.attack_num/self.ATTACK_MAX)
 
         x = unit.pos.x
         y = unit.pos.y
@@ -687,42 +597,19 @@ class GatherDefendEnv(MultiAgentEnv):
         base_feats[1] = (self.base_y - y) / sight_range
         base_feats[2] = self.base.health / self.base.max_health
         for res_i in range(self.n_resources):
-            base_feats[3 + res_i] = self.base.resources_amount[res_i] / self.episode_limit * 10
+            base_feats[3 + res_i] = self.base.resources_amount[res_i] / self.episode_limit
+        base_feats[3+self.n_resources+self.base.health] = 1.0
 
-        if self.has_barrack:
-            barrack_feats[0] = (self.barrack_x - x) / sight_range
-            barrack_feats[1] = (self.barrack_y - y) / sight_range
-            barrack_feats[2] = self.barrack.health / self.barrack.max_health
-
-        if self.obs_resources:
-            agent_obs = np.concatenate(
-                (
-                    move_feats.flatten(),
-                    enemy_feats.flatten(),
-                    ally_feats.flatten(),
-                    own_feats.flatten(),
-                    resources_feats.flatten(),
-                    base_feats.flatten()
-                )
+        agent_obs = np.concatenate(
+            (
+                move_feats.flatten(),
+                enemy_feats.flatten(),
+                ally_feats.flatten(),
+                own_feats.flatten(),
+                resources_feats.flatten(),
+                base_feats.flatten()
             )
-        else:
-            agent_obs = np.concatenate(
-                (
-                    move_feats.flatten(),
-                    enemy_feats.flatten(),
-                    ally_feats.flatten(),
-                    own_feats.flatten(),
-                    base_feats.flatten()
-                )
-            )
-
-        if self.has_barrack:
-            agent_obs = np.concatenate(
-                (
-                    agent_obs,
-                    barrack_feats.flatten()
-                )
-            )
+        )
 
         return agent_obs
 
@@ -744,7 +631,7 @@ class GatherDefendEnv(MultiAgentEnv):
             )
             return obs_concat
 
-        nf_al = 3 + 1 + self.n_resources
+        nf_al = 3 + 1 + self.n_resources*2+1 #specialization
         nf_en = 3
 
         ally_state = np.zeros((self.n_agents, nf_al))
@@ -764,8 +651,12 @@ class GatherDefendEnv(MultiAgentEnv):
                 ally_state[al_id, 3] = float(al_unit.loaded)
                 ind = 4
                 for resource_i in range(self.n_resources):
-                    ally_state[al_id, ind] = float(al_unit.resources_loaded[resource_i])
+                    ally_state[al_id, ind] = float(al_unit.resources_loaded[resource_i]/self.GATHER_MAX)
                     ind += 1
+                for resource_i in range(self.n_resources):
+                    ally_state[al_id, ind] = float(al_unit.resources_gathered[resource_i]/self.GATHER_MAX)
+                    ind +=1
+                ally_state[al_id, ind] = float(al_unit.attack_num/self.ATTACK_MAX)
 
         for e_id, e_unit in self.enemies.items():
             if e_unit.health > 0:
@@ -785,14 +676,15 @@ class GatherDefendEnv(MultiAgentEnv):
         for resource_i in range(self.n_resources):
             state = np.append(state, np.array([(self.resources[resource_i].pos.x-center_x) / self.map_x,
                                                (self.resources[resource_i].pos.y-center_y) / self.map_y]))
+
+        base_health_onehot=[0.0 for _ in range(self.base.max_health+1)]
+        base_health_onehot[self.base.health]=1.0
         state = np.append(state, np.array([(self.base_x - center_x) / self.map_x,
                                            (self.base_y - center_y) / self.map_y,
                                            self.base.health / self.base.max_health] +
-                                          [ras / self.episode_limit for ras in self.base.resources_amount]))
-        if self.has_barrack:
-            state = np.append(state, np.array([(self.barrack_x - center_x) / self.map_x,
-                                               (self.barrack_y - center_y) / self.map_y,
-                                               self.barrack.health / self.barrack.max_health]))
+                                          [ras / self.episode_limit for ras in self.base.resources_amount]+
+                                          base_health_onehot
+                                          ))
         state = state.astype(dtype=np.float32)
 
         return state
@@ -809,7 +701,7 @@ class GatherDefendEnv(MultiAgentEnv):
         if self.obs_enemy_health:
             nf_en += 1
 
-        own_feats = 1 + self.n_resources
+        own_feats = 1 + self.n_resources*2+1 #specialization
         if self.obs_own_health:
             own_feats += 1
 
@@ -821,18 +713,17 @@ class GatherDefendEnv(MultiAgentEnv):
         enemy_feats = self.n_enemies * nf_en
         ally_feats = (self.n_agents - 1) * nf_al
 
-        base_feats = self.n_resources + 3   # TODO: Add n_resources? If so, role can be dynamic. Thus, leave it only for now
-        resources_feats = 2 * self.n_resources if self.obs_resources else 0
-        barrack_feats = 3 if self.has_barrack else 0
+        base_feats = self.n_resources + 3  + self.base.max_health+1
+        resources_feats = 2 * self.n_resources
 
-        return move_feats + enemy_feats + ally_feats + own_feats + base_feats + resources_feats + barrack_feats
+        return move_feats + enemy_feats + ally_feats + own_feats + base_feats + resources_feats
 
     def get_state_size(self):
         """Returns the size of the global state."""
         if self.obs_instead_of_state:
             return self.get_obs_size() * self.n_agents
 
-        nf_al = 3 + 1 + self.n_resources
+        nf_al = 3 + 1 + self.n_resources*2+1 #specialization
         nf_en = 3
 
         enemy_state = self.n_enemies * nf_en
@@ -843,10 +734,7 @@ class GatherDefendEnv(MultiAgentEnv):
         if self.state_last_action:
             size += self.n_agents * self.n_actions
 
-        size += 3 + self.n_resources + 2 * self.n_resources
-
-        if self.has_barrack:
-            size += 3
+        size += 3 + self.n_resources + 2 * self.n_resources + self.base.max_health+1
 
         return size
 
@@ -873,7 +761,8 @@ class GatherDefendEnv(MultiAgentEnv):
         return False
 
     def can_reach(self, pos1, pos2):
-        return ((abs(pos1.x - pos2.x) <= 0) and (abs(pos1.y - pos2.y) <= 0))
+        #return ((abs(pos1.x - pos2.x) <= 1) and (abs(pos1.y - pos2.y) <= 1))
+        return (abs(pos1.x - pos2.x) + abs(pos1.y - pos2.y) <= 1)
 
     def get_avail_agent_actions(self, agent_id):
         """Returns the available actions for agent_id."""
@@ -937,6 +826,12 @@ class GatherDefendEnv(MultiAgentEnv):
         """Not implemented."""
         pass
 
+    def save_replay(self):
+        pass
+
+    def close(self):
+        pass
+
     def get_unit_by_id(self, a_id):
         """Get unit by ID."""
         return self.agents[a_id]
@@ -954,25 +849,6 @@ class GatherDefendEnv(MultiAgentEnv):
 
     def get_own_feature_size(self):
         return self.get_obs_size()
-
-    def close(self):
-        return
-
-    def save_replay(self):
-        return
-
-    def get_shield_bits_ally(self):
-        return 0
-    def get_unit_type_bits(self):
-        return 0
-    def get_map_size(self):
-        return (self.map_x, self.map_y)
-
-    def get_health_max(self):
-        return [0 for _ in range(self.n_agents)]
-
-    def get_shield_max(self):
-        return [0 for _ in range(self.n_agents)]
 
 
 if __name__ == '__main__':
