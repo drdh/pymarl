@@ -189,8 +189,8 @@ class GatherDefendEnv(MultiAgentEnv):
         # Resources
         self.base_x = 5
         self.base_y = 5
-        self.barrack_x = 8
-        self.barrack_y = 8
+        self.barrack_x = 7
+        self.barrack_y = 7
         self.resources = dict()
         for resources_id in range(self.n_resources):
             resource_pos = resources_pos[resources_id]
