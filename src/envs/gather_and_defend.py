@@ -303,7 +303,9 @@ class GatherDefendEnv(MultiAgentEnv):
                         unit.loaded = True
                         unit.resources_gathered[res_i] +=1
                         unit.info["pick_{}".format(res_i)]+=1
-                        attack_reward += self.reward_pick
+                        needed_ratio=(res_i+1)/(self.n_resources*(self.n_resources+1)/2)
+                        actual_ratio=(self.base.resources_amount[res_i]+1)/(sum(self.base.resources_amount)+1)
+                        attack_reward += self.reward_pick*(needed_ratio/actual_ratio)
 
         # Attack
         for enemy_id in range(self.n_enemies):
