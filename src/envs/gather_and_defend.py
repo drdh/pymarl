@@ -149,7 +149,7 @@ class GatherDefendEnv(MultiAgentEnv):
         self.debug = debug
         self.use_p_pick=use_p_pick
         self.use_p_attack=use_p_attack
-        self.base_diff=0
+        self.base_diff=2
 
         # Actions
         self.n_actions_no_attack = 6
