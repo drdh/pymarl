@@ -15,15 +15,15 @@ class LatentGRURNNAgent(nn.Module):
         self.n_actions = args.n_actions
         self.latent_dim = args.latent_dim
         self.hidden_dim = args.rnn_hidden_dim
-        self.bs = 0
+        self.bs = args.batch_size_run
 
         # Embed Network
         self.embed_fc = nn.Linear(input_shape, args.latent_dim * 2)
         # Latent GRU
         self.latent_rnn = nn.GRUCell(args.latent_dim*2, args.latent_dim*2)
 
-        self.latent = th.rand(args.n_agents, args.latent_dim * 2)  # (n,mu+var)
-        self.latent_hist = th.rand(args.n_agents, args.latent_dim * 2)
+        self.latent = th.rand(self.bs*args.n_agents, args.latent_dim * 2)  # (n,mu+var)
+        self.latent_hist = th.rand(self.bs*args.n_agents, args.latent_dim * 2)
 
         # latent -> FC2 parameter
         self.latent_fc1 = nn.Linear(args.latent_dim, args.latent_dim * 4)
@@ -47,11 +47,23 @@ class LatentGRURNNAgent(nn.Module):
         h_in = hidden_state.reshape(-1, self.hidden_dim)
 
         # Obs to role
+        latent_last = self.latent.detach()
         self.latent = self.embed_fc(inputs.detach())  # (n,2*latent_dim)==(n,mu+log var)
         self.latent[:, self.latent_dim:] = th.exp(self.latent[:, self.latent_dim:])  # var
 
         gaussian_embed = D.Normal(self.latent[:, :self.latent_dim], self.latent[:, self.latent_dim:])
-        latent = gaussian_embed.rsample()   # Sample a role
+        latent = gaussian_embed.rsample()  # Sample a role
+
+        loss = 0
+        if t==0:
+            self.latent_hist=self.latent.detach()
+        else:
+            self.latent_hist = self.latent_rnn(latent_last, self.latent_hist)
+            self.latent_hist[:, self.latent_dim:] = th.exp(self.latent_hist[:, self.latent_dim:])
+            gaussian_hist = D.Normal(self.latent_hist[:, :self.latent_dim], self.latent_hist[:, self.latent_dim:])
+            loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, gaussian_hist)  # CE = H + KL
+            loss = loss / (self.bs * self.n_agents)
+            loss = th.log(1 + th.exp(loss))
 
         # Role -> FC2 Params
         latent = F.relu(self.latent_fc1(latent))
@@ -66,15 +78,6 @@ class LatentGRURNNAgent(nn.Module):
         h = self.rnn(x, h_in)
         h = h.reshape(-1, 1, self.args.rnn_hidden_dim)
         q = th.bmm(h, fc2_w) + fc2_b
-
-        # history latents
-        self.latent_hist = self.latent_rnn(self.latent, self.latent_hist)
-        self.latent_hist[:, self.latent_dim:] = th.exp(self.latent_hist[:, self.latent_dim:])
-        gaussian_hist = D.Normal(self.latent_hist[:,:self.latent_dim], self.latent_hist[:,self.latent_dim:])
-
-        loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed,gaussian_hist) # CE = H + KL
-        loss = loss / (self.bs * self.n_agents)
-        loss = th.log(1+th.exp(loss))
 
         if self.args.runner=="episode":
             self.writer.add_embedding(self.latent.reshape(-1,self.latent_dim*2),list(range(self.args.n_agents)),global_step=t,tag="latent-step")
