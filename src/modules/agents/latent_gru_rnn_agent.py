@@ -54,14 +54,14 @@ class LatentGRURNNAgent(nn.Module):
         gaussian_embed = D.Normal(self.latent[:, :self.latent_dim], self.latent[:, self.latent_dim:])
         latent = gaussian_embed.rsample()  # Sample a role
 
-        loss = 0
         if t==0:
             self.latent_hist=self.latent.detach()
+            loss = 0
         else:
             self.latent_hist = self.latent_rnn(latent_last, self.latent_hist)
             self.latent_hist[:, self.latent_dim:] = th.exp(self.latent_hist[:, self.latent_dim:])
             gaussian_hist = D.Normal(self.latent_hist[:, :self.latent_dim], self.latent_hist[:, self.latent_dim:])
-            loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, gaussian_hist)  # CE = H + KL
+            loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, gaussian_hist).sum()  # CE = H + KL
             loss = loss / (self.bs * self.n_agents)
             loss = th.log(1 + th.exp(loss))
 
