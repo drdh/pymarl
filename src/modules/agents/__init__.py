@@ -3,6 +3,7 @@ REGISTRY = {}
 from .rnn_agent import RNNAgent
 from .latent_rnn_agent import LatentRNNAgent
 from .latent_vae_rnn_agent import LatentVAERNNAgent
+from .latent_gru_rnn_agent import LatentGRURNNAgent
 from .latent_snail_rnn_agent import LatentSNAILRNNAgent
 from .latent_oracle_rnn_agent import LatentOracleRNNAgent
 
@@ -23,6 +24,7 @@ from .mixture_role_rnn_agent import MixtureRoleRNNAgent
 REGISTRY["rnn"] = RNNAgent
 REGISTRY["latent_rnn"] = LatentRNNAgent
 REGISTRY["latent_vae_rnn"] = LatentVAERNNAgent
+REGISTRY["latent_gru_rnn"] = LatentGRURNNAgent
 REGISTRY["latent_snail_rnn"] = LatentSNAILRNNAgent
 REGISTRY["latent_oracle_rnn"] = LatentOracleRNNAgent
 REGISTRY["latent_cat_rnn"] = LatentCatRNNAgent
