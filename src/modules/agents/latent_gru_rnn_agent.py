@@ -21,6 +21,7 @@ class LatentGRURNNAgent(nn.Module):
         self.embed_fc = nn.Linear(input_shape, args.latent_dim * 2)
         # Latent GRU
         self.latent_rnn = nn.GRUCell(args.latent_dim*2, args.latent_dim*2)
+        self.latent_bn = nn.BatchNorm1d(args.latent_dim*2)
 
         self.latent = th.rand(self.bs*args.n_agents, args.latent_dim * 2)  # (n,mu+var)
         self.latent_hist = th.rand(self.bs*args.n_agents, args.latent_dim * 2)
@@ -58,7 +59,7 @@ class LatentGRURNNAgent(nn.Module):
             self.latent_hist=self.latent.detach()
             loss = 0
         else:
-            self.latent_hist = self.latent_rnn(latent_last, self.latent_hist)
+            self.latent_hist = self.latent_rnn(latent_last, self.latent_bn(self.latent_hist))
             self.latent_hist[:, self.latent_dim:] = th.exp(self.latent_hist[:, self.latent_dim:])
             gaussian_hist = D.Normal(self.latent_hist[:, :self.latent_dim], self.latent_hist[:, self.latent_dim:])
             loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, gaussian_hist).sum()  # CE = H + KL
