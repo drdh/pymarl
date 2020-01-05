@@ -20,9 +20,9 @@ class LatentHyperRNNAgent(nn.Module):
         # Embed Network
         self.embed_fc = nn.Linear(input_shape, args.latent_dim * 2)
         # Latent GRU
-        self.hyper_rnn = nn.GRUCell(input_shape, args.latent_dim*2)
+        self.hyper_rnn = nn.GRUCell(args.latent_dim * 2, args.latent_dim*2)
 
-        self.latent = th.rand(self.bs*args.n_agents, args.latent_dim * 2)  # (n,mu+var)
+        self.latent = th.rand(self.bs*args.n_agents, args.latent_dim * 2).cuda()  # (n,mu+var)
 
         # latent -> FC2 parameter
         self.latent_fc1 = nn.Linear(args.latent_dim, args.latent_dim * 4)
@@ -47,6 +47,8 @@ class LatentHyperRNNAgent(nn.Module):
 
         # Obs to role
         obs_post = self.embed_fc(inputs.detach())
+        if t==0:
+            self.latent = obs_post.detach()
         self.latent = self.hyper_rnn(obs_post,self.latent)  # (n,2*latent_dim)==(n,mu+log var)
         self.latent[:, self.latent_dim:] = th.exp(self.latent[:, self.latent_dim:])  # var
 
