@@ -21,6 +21,7 @@ class LatentHyperRNNAgent(nn.Module):
         self.embed_fc = nn.Linear(input_shape, args.latent_dim * 2)
         # Latent GRU
         self.hyper_rnn = nn.GRUCell(args.latent_dim * 2, args.latent_dim*2)
+        self.hyper_bn = nn.BatchNorm1d(args.latent_dim * 2)
 
         self.latent = th.rand(self.bs*args.n_agents, args.latent_dim * 2).cuda()  # (n,mu+var)
 
@@ -49,7 +50,7 @@ class LatentHyperRNNAgent(nn.Module):
         obs_post = self.embed_fc(inputs.detach())
         if t==0:
             self.latent = obs_post.detach()
-        self.latent = self.hyper_rnn(obs_post,self.latent)  # (n,2*latent_dim)==(n,mu+log var)
+        self.latent = self.hyper_rnn(obs_post,self.hyper_bn(self.latent))  # (n,2*latent_dim)==(n,mu+log var)
         self.latent[:, self.latent_dim:] = th.exp(self.latent[:, self.latent_dim:])  # var
 
         gaussian_embed = D.Normal(self.latent[:, :self.latent_dim], self.latent[:, self.latent_dim:])
