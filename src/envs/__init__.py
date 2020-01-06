@@ -1,6 +1,9 @@
 from functools import partial
 #from smac.env import MultiAgentEnv, StarCraft2Env, GatherDefendEnv
-from smac.env import MultiAgentEnv, StarCraft2Env
+#from smac.env import MultiAgentEnv, StarCraft2Env
+from .multiagentenv import MultiAgentEnv
+from .starcraft2 import StarCraft2Env
+
 from .gather_and_defend import GatherDefendEnv
 import sys
 import os
