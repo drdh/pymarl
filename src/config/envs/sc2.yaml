@@ -28,6 +28,7 @@ env_args:
   step_mul: 8
   seed: null
   debug: False
+  is_replay: False
 
 learner_log_interval: 20000
 log_interval: 20000

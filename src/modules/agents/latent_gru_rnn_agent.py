@@ -40,7 +40,7 @@ class LatentGRURNNAgent(nn.Module):
         self.bs = max(1, bs)
         loss = 0
         if self.args.runner == "episode":
-            self.writer = SummaryWriter("results/tb_logs/test_latent-"+time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime()) +"/latent")
+            self.writer = SummaryWriter("results/tb_logs/test_latent-"+ time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime()))
         return loss, self.latent[:self.n_agents,:].detach(),self.latent_hist[:self.n_agents,:]
 
     def forward(self, inputs, hidden_state,t=0,batch=None, test_mode=None):
@@ -81,6 +81,8 @@ class LatentGRURNNAgent(nn.Module):
         q = th.bmm(h, fc2_w) + fc2_b
 
         if self.args.runner=="episode":
-            self.writer.add_embedding(self.latent.reshape(-1,self.latent_dim*2),list(range(self.args.n_agents)),global_step=t,tag="latent-step")
-
+            self.writer.add_embedding(self.latent.reshape(-1,self.latent_dim*2),list(range(self.args.n_agents)),
+                                      global_step=t,tag="latent-cur")
+            self.writer.add_embedding(self.latent_hist.reshape(-1, self.latent_dim * 2), list(range(self.args.n_agents)),
+                                      global_step=t, tag="latent-hist")
         return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss
