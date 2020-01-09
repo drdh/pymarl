@@ -4,6 +4,7 @@ from .rnn_agent import RNNAgent
 from .latent_rnn_agent import LatentRNNAgent
 from .latent_vae_rnn_agent import LatentVAERNNAgent
 from .latent_gru_rnn_agent import LatentGRURNNAgent
+from .latent_dis_rnn_agent import LatentDisRNNAgent
 from .latent_hyper_rnn_agent import LatentHyperRNNAgent
 from .latent_snail_rnn_agent import LatentSNAILRNNAgent
 from .latent_oracle_rnn_agent import LatentOracleRNNAgent
@@ -26,6 +27,7 @@ REGISTRY["rnn"] = RNNAgent
 REGISTRY["latent_rnn"] = LatentRNNAgent
 REGISTRY["latent_vae_rnn"] = LatentVAERNNAgent
 REGISTRY["latent_gru_rnn"] = LatentGRURNNAgent
+REGISTRY["latent_dis_rnn"] = LatentDisRNNAgent
 REGISTRY["latent_hyper_rnn"] = LatentHyperRNNAgent
 REGISTRY["latent_snail_rnn"] = LatentSNAILRNNAgent
 REGISTRY["latent_oracle_rnn"] = LatentOracleRNNAgent
