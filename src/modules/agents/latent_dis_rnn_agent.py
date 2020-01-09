@@ -61,6 +61,7 @@ class LatentDisRNNAgent(nn.Module):
 
         gaussian_embed = D.Normal(self.latent[:, :self.latent_dim], self.latent[:, self.latent_dim:])
         latent = gaussian_embed.rsample()  # Sample a role
+        c_dis_loss = 0
 
         if t == 0:
             self.latent_hist = self.latent.detach()
@@ -86,17 +87,23 @@ class LatentDisRNNAgent(nn.Module):
                 gaussian_hist_move = D.Normal(
                     latent_hist_dis_move[:, :, :self.latent_dim].view(self.bs * self.n_agents, -1),
                     latent_hist_dis_move[:, :, self.latent_dim:].view(self.bs * self.n_agents, -1))
-                mi = gaussian_hist_move.log_prob(gaussian_hist_sample).sum(dim=1).unsqueeze(1)
+                mi = th.clamp(gaussian_hist_move.log_prob(gaussian_hist_sample), -13.9, 0).sum(dim=1,
+                                                                                               keepdim=True) / self.latent_dim / self.bs
                 dissimilarity = th.abs(self.dis_net(latent_hist_dis_pair.view(-1, 2 * self.latent_dim)))
                 if dissimilarity_cat is not None:
                     dissimilarity_cat = th.cat([dissimilarity_cat, dissimilarity.view(self.bs, -1)], dim=1)
                 else:
                     dissimilarity_cat = dissimilarity.view(self.bs, -1).clone()
-                dis_loss -= th.abs(mi - dissimilarity).sum()
+                dis_loss -= th.abs(mi - dissimilarity / self.bs).sum()
 
-            loss += self.args.dis_loss_weight * (
-                        dis_loss + th.norm(dissimilarity_cat, p=2, dim=1).sum()) / self.n_agents
+                # print('mi', mi.sum())
+                # print('dis', dissimilarity.sum() / self.bs)
+                # print('dis_norm', th.norm(dissimilarity_cat, p=2, dim=1).sum() / self.bs)
+
+            # print(dis_loss)
+            c_dis_loss = (dis_loss + th.norm(dissimilarity_cat, p=2, dim=1).sum() / self.bs) / self.n_agents
             loss = loss / (self.bs * self.n_agents)
+            loss += self.args.dis_loss_weight * c_dis_loss
             loss = th.log(1 + th.exp(loss))
 
         # Role -> FC2 Params
@@ -119,4 +126,4 @@ class LatentDisRNNAgent(nn.Module):
             self.writer.add_embedding(self.latent_hist.reshape(-1, self.latent_dim * 2),
                                       list(range(self.args.n_agents)),
                                       global_step=t, tag="latent-hist")
-        return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss
+        return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss, c_dis_loss

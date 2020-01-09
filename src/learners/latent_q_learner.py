@@ -5,13 +5,15 @@ from modules.mixers.qmix import QMixer
 from .q_learner import QLearner
 import torch as th
 from torch.optim import RMSprop
-#import numpy as np
-#import matplotlib.pyplot as plt
+
+
+# import numpy as np
+# import matplotlib.pyplot as plt
 
 
 class LatentQLearner(QLearner):
     def __init__(self, mac, scheme, logger, args):
-        super(LatentQLearner,self).__init__(mac, scheme, logger, args)
+        super(LatentQLearner, self).__init__(mac, scheme, logger, args)
         self.args = args
         self.mac = mac
         self.logger = logger
@@ -53,24 +55,27 @@ class LatentQLearner(QLearner):
         mac_out = []
 
         self.mac.init_hidden(batch.batch_size)
-        mac_loss,latent,latent_vae=self.mac.init_latent(batch.batch_size)
+        mac_loss, latent, latent_vae = self.mac.init_latent(batch.batch_size)
 
-        loss_ce=0
+        loss_ce = 0
+        dis_loss = 0
         for t in range(batch.max_seq_length):
-            agent_outs,loss_= self.mac.forward(batch, t=t) #(bs,n,n_actions),(bs,n,latent_dim)
-            loss_ce+=loss_
-            #loss_cs=self.args.gamma*loss_cs + _loss
-            mac_out.append(agent_outs) #[t,(bs,n,n_actions)]
-            #mac_out_latent.append((agent_outs_latent)) #[t,(bs,n,latent_dim)]
+            agent_outs, loss_, dis_loss_ = self.mac.forward(batch, t=t)  # (bs,n,n_actions),(bs,n,latent_dim)
+            loss_ce += loss_
+            dis_loss += dis_loss_
+            # loss_cs=self.args.gamma*loss_cs + _loss
+            mac_out.append(agent_outs)  # [t,(bs,n,n_actions)]
+            # mac_out_latent.append((agent_outs_latent)) #[t,(bs,n,latent_dim)]
 
-        loss_ce/=batch.max_seq_length
+        loss_ce /= batch.max_seq_length
+        dis_loss /= batch.max_seq_length
 
         mac_out = th.stack(mac_out, dim=1)  # Concat over time
-        #(bs,t,n,n_actions), Q values of n_actions
+        # (bs,t,n,n_actions), Q values of n_actions
 
-        #mac_out_latent=th.stack(mac_out_latent,dim=1)
+        # mac_out_latent=th.stack(mac_out_latent,dim=1)
         # (bs,t,n,latent_dim)
-        #mac_out_latent=mac_out_latent.reshape(-1,self.args.latent_dim)
+        # mac_out_latent=mac_out_latent.reshape(-1,self.args.latent_dim)
 
         # Pick the Q-Values for the actions taken by each agent
         chosen_action_qvals = th.gather(mac_out[:, :-1], dim=3, index=actions).squeeze(3)  # Remove the last dim
@@ -78,27 +83,28 @@ class LatentQLearner(QLearner):
 
         # Calculate the Q-Values necessary for the target
         target_mac_out = []
-        self.target_mac.init_hidden(batch.batch_size) # (bs,n,hidden_size)
-        self.target_mac.init_latent(batch.batch_size) # (bs,n,latent_size)
+        self.target_mac.init_hidden(batch.batch_size)  # (bs,n,hidden_size)
+        self.target_mac.init_latent(batch.batch_size)  # (bs,n,latent_size)
 
         for t in range(batch.max_seq_length):
-            target_agent_outs,loss_cs_target= self.target_mac.forward(batch, t=t) #(bs,n,n_actions), (bs,n,latent_dim)
-            target_mac_out.append(target_agent_outs) #[t,(bs,n,n_actions)]
+            target_agent_outs, loss_cs_target, _ = self.target_mac.forward(batch,
+                                                                        t=t)  # (bs,n,n_actions), (bs,n,latent_dim)
+            target_mac_out.append(target_agent_outs)  # [t,(bs,n,n_actions)]
 
         # We don't need the first timesteps Q-Value estimate for calculating targets
         target_mac_out = th.stack(target_mac_out[1:], dim=1)  # Concat across time, dim=1 is time index
-        #(bs,t,n,n_actions)
+        # (bs,t,n,n_actions)
 
         # Mask out unavailable actions
-        target_mac_out[avail_actions[:, 1:] == 0] = -9999999 # Q values
+        target_mac_out[avail_actions[:, 1:] == 0] = -9999999  # Q values
 
         # Max over target Q-Values
-        if self.args.double_q: # True for QMix
+        if self.args.double_q:  # True for QMix
             # Get actions that maximise live Q (for double q-learning)
-            mac_out_detach = mac_out.clone().detach() #return a new Tensor, detached from the current graph
+            mac_out_detach = mac_out.clone().detach()  # return a new Tensor, detached from the current graph
             mac_out_detach[avail_actions == 0] = -9999999
-                            # (bs,t,n,n_actions), discard t=0
-            cur_max_actions = mac_out_detach[:, 1:].max(dim=3, keepdim=True)[1] # indices instead of values
+            # (bs,t,n,n_actions), discard t=0
+            cur_max_actions = mac_out_detach[:, 1:].max(dim=3, keepdim=True)[1]  # indices instead of values
             # (bs,t,n,1)
             target_max_qvals = th.gather(target_mac_out, 3, cur_max_actions).squeeze(3)
             # (bs,t,n,n_actions) ==> (bs,t,n,1) ==> (bs,t,n) max target-Q
@@ -115,7 +121,7 @@ class LatentQLearner(QLearner):
         targets = rewards + self.args.gamma * (1 - terminated) * target_max_qvals
 
         # Td-error
-        td_error = (chosen_action_qvals - targets.detach()) # no gradient through target net
+        td_error = (chosen_action_qvals - targets.detach())  # no gradient through target net
         # (bs,t,1)
 
         mask = mask.expand_as(td_error)
@@ -127,15 +133,15 @@ class LatentQLearner(QLearner):
         loss = (masked_td_error ** 2).sum() / mask.sum()
 
         # entropy loss
-        #mac_out_latent_norm=th.sqrt(th.sum(mac_out_latent*mac_out_latent,dim=1))
-        #mac_out_latent=mac_out_latent/mac_out_latent_norm[:,None]
-        #loss+=(th.norm(mac_out_latent)/mac_out_latent.size(0))*self.args.entropy_loss_weight
-        loss+=loss_ce*self.args.entropy_loss_weight
+        # mac_out_latent_norm=th.sqrt(th.sum(mac_out_latent*mac_out_latent,dim=1))
+        # mac_out_latent=mac_out_latent/mac_out_latent_norm[:,None]
+        # loss+=(th.norm(mac_out_latent)/mac_out_latent.size(0))*self.args.entropy_loss_weight
+        loss += loss_ce * self.args.entropy_loss_weight
 
         # Optimise
         self.optimiser.zero_grad()
         loss.backward()
-        grad_norm = th.nn.utils.clip_grad_norm_(self.params, self.args.grad_norm_clip)# max_norm
+        grad_norm = th.nn.utils.clip_grad_norm_(self.params, self.args.grad_norm_clip)  # max_norm
         self.optimiser.step()
 
         if (episode_num - self.last_target_update_episode) / self.args.target_update_interval >= 1.0:
@@ -143,27 +149,31 @@ class LatentQLearner(QLearner):
             self.last_target_update_episode = episode_num
 
         if t_env - self.log_stats_t >= self.args.learner_log_interval:
-        #    if self.role_save % self.role_save_interval == 0:
-        #        self.role_save = 0
-        #        if self.args.latent_dim in [2, 3]:
+            #    if self.role_save % self.role_save_interval == 0:
+            #        self.role_save = 0
+            #        if self.args.latent_dim in [2, 3]:
 
-                    # fig = plt.figure()
-                    # ax = fig.add_subplot(111, projection='3d')
-        #           print(self.mac.agent.latent[:, :self.args.latent_dim],
-        #                  self.mac.agent.latent[:, -self.args.latent_dim:])
+            # fig = plt.figure()
+            # ax = fig.add_subplot(111, projection='3d')
+            #           print(self.mac.agent.latent[:, :self.args.latent_dim],
+            #                  self.mac.agent.latent[:, -self.args.latent_dim:])
 
-        #    self.role_save += 1
+            #    self.role_save += 1
 
             self.logger.log_stat("loss", loss.item(), t_env)
+            self.logger.log_stat("loss_ce", loss_ce.item(), t_env)
+            self.logger.log_stat("loss_dis", dis_loss.item(), t_env)
             self.logger.log_stat("grad_norm", grad_norm, t_env)
             mask_elems = mask.sum().item()
-            self.logger.log_stat("td_error_abs", (masked_td_error.abs().sum().item()/mask_elems), t_env)
-            self.logger.log_stat("q_taken_mean", (chosen_action_qvals * mask).sum().item()/(mask_elems * self.args.n_agents), t_env)
-            self.logger.log_stat("target_mean", (targets * mask).sum().item()/(mask_elems * self.args.n_agents), t_env)
+            self.logger.log_stat("td_error_abs", (masked_td_error.abs().sum().item() / mask_elems), t_env)
+            self.logger.log_stat("q_taken_mean",
+                                 (chosen_action_qvals * mask).sum().item() / (mask_elems * self.args.n_agents), t_env)
+            self.logger.log_stat("target_mean", (targets * mask).sum().item() / (mask_elems * self.args.n_agents),
+                                 t_env)
 
             if self.args.use_tensorboard:
-                #log_vec(self,mat,metadata,label_img,global_step,tag)
-                self.logger.log_vec(latent,list(range(self.args.n_agents)),t_env,"latent")
+                # log_vec(self,mat,metadata,label_img,global_step,tag)
+                self.logger.log_vec(latent, list(range(self.args.n_agents)), t_env, "latent")
                 self.logger.log_vec(latent_vae, list(range(self.args.n_agents)), t_env, "latent-VAE")
             self.log_stats_t = t_env
 

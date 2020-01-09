@@ -285,7 +285,8 @@ class StarCraft2Env(MultiAgentEnv):
 
     def _launch(self):
         """Launch the StarCraft II game."""
-        self._run_config = run_configs.get(version=self.game_version)
+        # self._run_config = run_configs.get(version=self.game_version)
+        self._run_config = run_configs.get()
         _map = maps.get(self.map_name)
 
         # Setting up the interface
