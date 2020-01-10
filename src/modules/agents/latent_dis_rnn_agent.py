@@ -96,11 +96,6 @@ class LatentDisRNNAgent(nn.Module):
                     dissimilarity_cat = dissimilarity.view(self.bs, -1).clone()
                 dis_loss -= th.abs(mi - dissimilarity / self.bs).sum()
 
-                # print('mi', mi.sum())
-                # print('dis', dissimilarity.sum() / self.bs)
-                # print('dis_norm', th.norm(dissimilarity_cat, p=2, dim=1).sum() / self.bs)
-
-            # print(dis_loss)
             c_dis_loss = (dis_loss + th.norm(dissimilarity_cat, p=2, dim=1).sum() / self.bs) / self.n_agents
             loss = loss / (self.bs * self.n_agents)
             loss += self.args.dis_loss_weight * c_dis_loss
