@@ -291,7 +291,7 @@ class LatentDisRNNAgent(nn.Module):
 
                     #loss_gaussian = D.Normal(th.full_like(latent_dis[:, :, :self.latent_dim],0.5),
                     #                         th.full_like(latent_dis[:, :, self.latent_dim:],0.5))
-                    loss_gaussian = D.Normal(0.1,1.0)
+                    loss_gaussian = D.Normal(0.5,1.0)
 
                     for agent_i in range(self.n_agents):
                         latent_move = th.cat(
