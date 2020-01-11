@@ -42,7 +42,7 @@ class LatentDisRNNAgent(nn.Module):
                                      nn.ReLU(),
                                      nn.Linear(args.latent_dim * 4, 1))
 
-        if args.dis_net:
+        if args.dis_cur:
             if args.dis_net:
                 self.forward = self.forward_cur_dis_net
             else:
@@ -329,7 +329,7 @@ class LatentDisRNNAgent(nn.Module):
         return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss, c_dis_loss
 
     def dis_loss_weight_schedule(self, t_glob):
-        if t_glob > 5000000:
+        if t_glob > 0:
             return self.args.dis_loss_weight
         else:
             return 0
