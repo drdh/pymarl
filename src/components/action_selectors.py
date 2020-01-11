@@ -26,6 +26,9 @@ class MultinomialActionSelector():
         else:
             picked_actions = Categorical(masked_policies).sample().long()
 
+        if not (th.gather(avail_actions, dim=2, index=picked_actions.unsqueeze(2)) > 0.99).all():
+            return self.select_action(agent_inputs, avail_actions, t_env, test_mode)
+
         return picked_actions
 
 
