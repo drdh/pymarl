@@ -29,12 +29,12 @@ class SeparateMAC(BasicMAC):
                                                             test_mode=test_mode)
         return chosen_actions
 
-    def forward(self, ep_batch, t, test_mode=False):
+    def forward(self, ep_batch, t, test_mode=False, t_glob=0, train_mode=False):
         agent_inputs = self._build_inputs(ep_batch, t)  # (bs*n,(obs+act+id))
         avail_actions = ep_batch["avail_actions"][:, t]
         # (bs*n,(obs+act+id)), (bs,n,hidden_size), (bs,n,latent_dim)
-        agent_outs, self.hidden_states, loss_cs, diss_loss = self.agent.forward(agent_inputs, self.hidden_states, t,
-                                                                                ep_batch)
+        agent_outs, self.hidden_states, loss_cs, diss_loss = self.agent.forward(agent_inputs, self.hidden_states, t=t,
+                                                                                batch=ep_batch, t_glob=t_glob, train_mode=train_mode)
         # (bs*n,n_actions), (bs*n,hidden_dim), (bs*n,latent_dim)
         # self.latents=self.latents.reshape(ep_batch.batch_size,self.n_agents,self.args.latent_dim) #(bs,n,latent_dim)
 
