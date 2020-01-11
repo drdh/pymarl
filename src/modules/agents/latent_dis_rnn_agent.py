@@ -304,7 +304,7 @@ class LatentDisRNNAgent(nn.Module):
                             th.norm(latent_move[:, :, :self.latent_dim] - latent_dis[:, :, :self.latent_dim],
                                     dim=2))).sum()
 
-                    c_dis_loss = dis_loss / self.n_agents / self.bs
+                    c_dis_loss = dis_loss / self.n_agents / self.bs / self.n_agents
                     # c_dis_loss = th.zeros_like(loss)
 
                     loss = loss / (self.bs * self.n_agents)
