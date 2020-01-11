@@ -43,7 +43,7 @@ class LatentGRURNNAgent(nn.Module):
             self.writer = SummaryWriter("results/tb_logs/test_latent-"+ time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime()))
         return loss, self.latent[:self.n_agents,:].detach(),self.latent_hist[:self.n_agents,:]
 
-    def forward(self, inputs, hidden_state,t=0,batch=None, test_mode=None):
+    def forward(self, inputs, hidden_state,t=0, batch=None, test_mode=None, t_glob=0, train_mode=False):
         inputs = inputs.reshape(-1, self.input_shape)
         h_in = hidden_state.reshape(-1, self.hidden_dim)
 
@@ -85,4 +85,4 @@ class LatentGRURNNAgent(nn.Module):
                                       global_step=t,tag="latent-cur")
             self.writer.add_embedding(self.latent_hist.reshape(-1, self.latent_dim * 2), list(range(self.args.n_agents)),
                                       global_step=t, tag="latent-hist")
-        return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss
+        return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss, 0
