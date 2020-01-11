@@ -300,7 +300,7 @@ class LatentDisRNNAgent(nn.Module):
                                                         latent_move[:, :, self.latent_dim:])
 
                         #dis_kl = D.kl_divergence(latent_dis_gaussian, latent_move_gaussian) / self.bs / self.n_agents
-                        dis_loss += loss_gaussian.log_prob(th.norm(latent_move[:, :, :self.latent_dim]-latent_dis[:, :, :self.latent_dim],dim=2)).sum()
+                        dis_loss += th.exp(loss_gaussian.log_prob(th.norm(latent_move[:, :, :self.latent_dim]-latent_dis[:, :, :self.latent_dim],dim=2))).sum()
 
                     c_dis_loss = dis_loss / self.n_agents
                     #c_dis_loss = th.zeros_like(loss)
