@@ -289,15 +289,22 @@ class LatentDisRNNAgent(nn.Module):
                                                    latent_dis[:, :, self.latent_dim:])
                     latent_move = self.latent.clone().view(self.bs, self.n_agents, -1)
 
+                    #loss_gaussian = D.Normal(th.full_like(latent_dis[:, :, :self.latent_dim],0.5),
+                    #                         th.full_like(latent_dis[:, :, self.latent_dim:],0.5))
+                    loss_gaussian = D.Normal(0.1,1.0)
+
                     for agent_i in range(self.n_agents):
                         latent_move = th.cat(
                             [latent_move[:, -1, :].unsqueeze(1), latent_move[:, :-1, :]], dim=1)
                         latent_move_gaussian = D.Normal(latent_move[:, :, :self.latent_dim],
                                                         latent_move[:, :, self.latent_dim:])
 
-                        dis_kl = D.kl_divergence(latent_dis_gaussian, latent_move_gaussian) / self.bs / self.n_agents
+                        #dis_kl = D.kl_divergence(latent_dis_gaussian, latent_move_gaussian) / self.bs / self.n_agents
+                        dis_loss += loss_gaussian.log_prob(th.norm(latent_move[:, :, :self.latent_dim]-latent_dis[:, :, :self.latent_dim],dim=2)).sum()
 
                     c_dis_loss = dis_loss / self.n_agents
+                    #c_dis_loss = th.zeros_like(loss)
+
                     loss = loss / (self.bs * self.n_agents)
                     loss += self.args.dis_loss_weight * c_dis_loss
                     loss = th.log(1 + th.exp(loss))
