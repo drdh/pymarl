@@ -310,8 +310,9 @@ class LatentDisRNNAgent(nn.Module):
                     # c_dis_loss = th.zeros_like(loss)
 
                     loss = loss / (self.bs * self.n_agents)
-                    loss += self.args.dis_loss_weight * c_dis_loss
-                    loss = th.log(1 + th.exp(loss))
+                    ce_loss = th.log(1 + th.exp(loss))
+                    loss = self.args.dis_loss_weight * c_dis_loss + ce_loss
+
                 else:
                     loss = loss / (self.bs * self.n_agents)
                     loss = th.log(1 + th.exp(loss))
@@ -337,7 +338,7 @@ class LatentDisRNNAgent(nn.Module):
             self.writer.add_embedding(self.latent_hist.reshape(-1, self.latent_dim * 2),
                                       list(range(self.args.n_agents)),
                                       global_step=t, tag="latent-hist")
-        return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss, c_dis_loss
+        return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss, c_dis_loss, ce_loss
 
     def dis_loss_weight_schedule(self, t_glob):
         if t_glob > 0:
