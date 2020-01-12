@@ -85,4 +85,4 @@ class LatentGRURNNAgent(nn.Module):
                                       global_step=t,tag="latent-cur")
             self.writer.add_embedding(self.latent_hist.reshape(-1, self.latent_dim * 2), list(range(self.args.n_agents)),
                                       global_step=t, tag="latent-hist")
-        return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss, 0
+        return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss, loss, loss
