@@ -343,7 +343,7 @@ class LatentDisRNNAgent(nn.Module):
         return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss, c_dis_loss, ce_loss
 
     def dis_loss_weight_schedule(self, t_glob):
-        if t_glob > 5000000:
+        if t_glob > self.args.dis_time:
             return self.args.dis_loss_weight
         else:
             return 0
