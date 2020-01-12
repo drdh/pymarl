@@ -57,18 +57,21 @@ class LatentQLearner(QLearner):
         self.mac.init_hidden(batch.batch_size)
         mac_loss, latent, latent_vae = self.mac.init_latent(batch.batch_size)
 
-        loss_ce = 0
+        reg_loss = 0
         dis_loss = 0
+        ce_loss = 0
         for t in range(batch.max_seq_length):
-            agent_outs, loss_, dis_loss_ = self.mac.forward(batch, t=t, t_glob=t_env, train_mode=True)  # (bs,n,n_actions),(bs,n,latent_dim)
-            loss_ce += loss_
+            agent_outs, loss_, dis_loss_, ce_loss_ = self.mac.forward(batch, t=t, t_glob=t_env, train_mode=True)  # (bs,n,n_actions),(bs,n,latent_dim)
+            reg_loss += loss_
             dis_loss += dis_loss_
+            ce_loss += ce_loss_
             # loss_cs=self.args.gamma*loss_cs + _loss
             mac_out.append(agent_outs)  # [t,(bs,n,n_actions)]
             # mac_out_latent.append((agent_outs_latent)) #[t,(bs,n,latent_dim)]
 
-        loss_ce /= batch.max_seq_length
+        reg_loss /= batch.max_seq_length
         dis_loss /= batch.max_seq_length
+        ce_loss /= batch.max_seq_length
 
         mac_out = th.stack(mac_out, dim=1)  # Concat over time
         # (bs,t,n,n_actions), Q values of n_actions
@@ -87,7 +90,7 @@ class LatentQLearner(QLearner):
         self.target_mac.init_latent(batch.batch_size)  # (bs,n,latent_size)
 
         for t in range(batch.max_seq_length):
-            target_agent_outs, loss_cs_target, _ = self.target_mac.forward(batch,
+            target_agent_outs, loss_cs_target, _, _ = self.target_mac.forward(batch,
                                                                         t=t)  # (bs,n,n_actions), (bs,n,latent_dim)
             target_mac_out.append(target_agent_outs)  # [t,(bs,n,n_actions)]
 
@@ -136,7 +139,7 @@ class LatentQLearner(QLearner):
         # mac_out_latent_norm=th.sqrt(th.sum(mac_out_latent*mac_out_latent,dim=1))
         # mac_out_latent=mac_out_latent/mac_out_latent_norm[:,None]
         # loss+=(th.norm(mac_out_latent)/mac_out_latent.size(0))*self.args.entropy_loss_weight
-        loss += loss_ce * self.args.entropy_loss_weight
+        loss += reg_loss * self.args.entropy_loss_weight
 
         # Optimise
         self.optimiser.zero_grad()
@@ -161,8 +164,9 @@ class LatentQLearner(QLearner):
             #    self.role_save += 1
 
             self.logger.log_stat("loss", loss.item(), t_env)
-            self.logger.log_stat("loss_ce", loss_ce.item(), t_env)
+            self.logger.log_stat("loss_ce", reg_loss.item(), t_env)
             self.logger.log_stat("loss_dis", dis_loss.item(), t_env)
+            self.logger.log_stat("loss_dis", ce_loss.item(), t_env)
             self.logger.log_stat("grad_norm", grad_norm, t_env)
             mask_elems = mask.sum().item()
             self.logger.log_stat("td_error_abs", (masked_td_error.abs().sum().item() / mask_elems), t_env)

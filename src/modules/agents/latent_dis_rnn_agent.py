@@ -183,6 +183,7 @@ class LatentDisRNNAgent(nn.Module):
         latent = gaussian_embed.rsample()  # Sample a role
         c_dis_loss = 0
         loss = 0
+        ce_loss = 0
 
         if train_mode:
             if t == 0:
@@ -225,11 +226,12 @@ class LatentDisRNNAgent(nn.Module):
 
                     c_dis_loss = (dis_loss + dis_norm) / self.n_agents
                     loss = loss / (self.bs * self.n_agents)
-                    loss += self.args.dis_loss_weight * c_dis_loss
-                    loss = th.log(1 + th.exp(loss))
+                    ce_loss = th.log(1 + th.exp(loss))
+                    loss = ce_loss + self.args.dis_loss_weight * c_dis_loss
                 else:
                     loss = loss / (self.bs * self.n_agents)
                     loss = th.log(1 + th.exp(loss))
+                    ce_loss = loss
                     c_dis_loss = th.zeros_like(loss)
 
         # Role -> FC2 Params
@@ -252,7 +254,7 @@ class LatentDisRNNAgent(nn.Module):
             self.writer.add_embedding(self.latent_hist.reshape(-1, self.latent_dim * 2),
                                       list(range(self.args.n_agents)),
                                       global_step=t, tag="latent-hist")
-        return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss, c_dis_loss
+        return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss, c_dis_loss, ce_loss
 
     def forward_cur(self, inputs, hidden_state, t=0, batch=None, test_mode=None, t_glob=0, train_mode=False):
         inputs = inputs.reshape(-1, self.input_shape)
@@ -338,7 +340,7 @@ class LatentDisRNNAgent(nn.Module):
         return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss, c_dis_loss
 
     def dis_loss_weight_schedule(self, t_glob):
-        if t_glob > 5000000:
+        if t_glob > 0:
             return self.args.dis_loss_weight
         else:
             return 0
