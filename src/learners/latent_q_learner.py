@@ -164,9 +164,9 @@ class LatentQLearner(QLearner):
             #    self.role_save += 1
 
             self.logger.log_stat("loss", loss.item(), t_env)
-            self.logger.log_stat("loss_ce", reg_loss.item(), t_env)
+            self.logger.log_stat("loss_reg", (reg_loss / self.args.dis_loss_weight).item(), t_env)
             self.logger.log_stat("loss_dis", dis_loss.item(), t_env)
-            self.logger.log_stat("loss_dis", ce_loss.item(), t_env)
+            self.logger.log_stat("loss_ce", ce_loss.item(), t_env)
             self.logger.log_stat("grad_norm", grad_norm, t_env)
             mask_elems = mask.sum().item()
             self.logger.log_stat("td_error_abs", (masked_td_error.abs().sum().item() / mask_elems), t_env)
