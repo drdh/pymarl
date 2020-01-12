@@ -269,6 +269,7 @@ class LatentDisRNNAgent(nn.Module):
         latent = gaussian_embed.rsample()  # Sample a role
         c_dis_loss = 0
         loss = 0
+        ce_loss = 0
 
         if train_mode:
             if t == 0:
@@ -317,6 +318,7 @@ class LatentDisRNNAgent(nn.Module):
                     loss = loss / (self.bs * self.n_agents)
                     loss = th.log(1 + th.exp(loss))
                     c_dis_loss = th.zeros_like(loss)
+                    ce_loss = loss
 
         # Role -> FC2 Params
         latent = F.relu(self.latent_fc1(latent))
@@ -341,7 +343,7 @@ class LatentDisRNNAgent(nn.Module):
         return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss, c_dis_loss, ce_loss
 
     def dis_loss_weight_schedule(self, t_glob):
-        if t_glob > 0:
+        if t_glob > 5000000:
             return self.args.dis_loss_weight
         else:
             return 0
