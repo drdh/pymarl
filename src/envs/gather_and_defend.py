@@ -113,6 +113,7 @@ class GatherDefendEnv(MultiAgentEnv):
             reward_scale=True,
             reward_scale_rate=40,
             debug=False,
+            is_replay=False,
             sight_range=9,
             shoot_range=1,
             map_x=10,
@@ -169,6 +170,7 @@ class GatherDefendEnv(MultiAgentEnv):
         self._seed = random.randint(0, 9999)
         np.random.seed(self._seed)
         self.debug = debug
+        self.is_replay = is_replay
 
         # Actions
         self.n_actions_no_attack = 6
