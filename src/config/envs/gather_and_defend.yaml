@@ -29,7 +29,6 @@ env_args:
   reward_scale: True
   reward_scale_rate: 20
   debug: False
-  is_replay: False
   sight_range: 9
   shoot_range: 1
   map_x: 10

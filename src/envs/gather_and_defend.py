@@ -113,7 +113,6 @@ class GatherDefendEnv(MultiAgentEnv):
             reward_scale=True,
             reward_scale_rate=40,
             debug=False,
-            is_replay=False,
             sight_range=9,
             shoot_range=1,
             map_x=10,
@@ -170,7 +169,6 @@ class GatherDefendEnv(MultiAgentEnv):
         self._seed = random.randint(0, 9999)
         np.random.seed(self._seed)
         self.debug = debug
-        self.is_replay = is_replay
 
         # Actions
         self.n_actions_no_attack = 6
@@ -207,7 +205,7 @@ class GatherDefendEnv(MultiAgentEnv):
         max_integrate = self.episode_limit / 8
         self.max_reward = (max_kill * (self.reward_death_value + self.enemy_health * self.reward_defeat)
                            + self.reward_win
-                           + max_integrate * self.reward_integrate)
+                           + max_integrate * self.reward_integrate) / 2
 
         self.agents = {}
         self.enemies = {}
@@ -329,12 +327,12 @@ class GatherDefendEnv(MultiAgentEnv):
                         if self.base.resources_amount[0] >= self.base.resources_amount[1] / 2:
                             reward_gather *= 5
                         else:
-                            reward_gather /= 2
+                            reward_gather /= 2 * 2
                     else:
                         if self.base.resources_amount[0] <= self.base.resources_amount[1] / 2:
                             reward_gather *= 5
                         else:
-                            reward_gather /= 2
+                            reward_gather /= 2 * 2
 
                     self.base.resources_amount[res_i] += 1
                     unit.resources_loaded[res_i] = False
