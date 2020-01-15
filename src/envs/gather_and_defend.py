@@ -113,6 +113,7 @@ class GatherDefendEnv(MultiAgentEnv):
             reward_scale=True,
             reward_scale_rate=40,
             debug=False,
+            is_replay=False,
             sight_range=9,
             shoot_range=1,
             map_x=10,
@@ -169,6 +170,7 @@ class GatherDefendEnv(MultiAgentEnv):
         self._seed = random.randint(0, 9999)
         np.random.seed(self._seed)
         self.debug = debug
+        self.is_replay = is_replay
 
         # Actions
         self.n_actions_no_attack = 6
@@ -455,6 +457,16 @@ class GatherDefendEnv(MultiAgentEnv):
 
     def step(self, actions):
         """A single environment step. Returns reward, terminated, info."""
+        if self.is_replay:
+            positions = []
+            for agent_id in range(self.n_agents):
+                unit = self.get_unit_by_id(agent_id)
+                positions.append([agent_id, unit.pos.x, unit.pos.y, list(unit.resources_loaded)])
+            for e_id, e_unit in self.enemies.items():
+                positions.append([e_id, e_unit.pos.x, e_unit.pos.y, e_unit.health])
+            # positions.insert(0,self._episode_steps)
+            print(positions, ",")
+
         actions = [int(a) for a in actions]
 
         if self.debug:
@@ -526,6 +538,16 @@ class GatherDefendEnv(MultiAgentEnv):
             for resource_i in range(self.n_resources):
                 info["remaining_{}".format(resource_i)] = self.base.resources_amount[resource_i]
             info["kill"] = self.kill_number
+
+            if self.is_replay:
+                positions = []
+                for agent_id in range(self.n_agents):
+                    unit = self.get_unit_by_id(agent_id)
+                    positions.append([agent_id, unit.pos.x, unit.pos.y, list(unit.resources_loaded)])
+                for e_id, e_unit in self.enemies.items():
+                    positions.append([e_id, e_unit.pos.x, e_unit.pos.y, e_unit.health])
+                # positions.insert(0,self._episode_steps)
+                print(positions, ",")
 
             if self.debug:
                 if info["battle_won"]:
