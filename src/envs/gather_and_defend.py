@@ -464,6 +464,7 @@ class GatherDefendEnv(MultiAgentEnv):
                 positions.append([agent_id, unit.pos.x, unit.pos.y, list(unit.resources_loaded)])
             for e_id, e_unit in self.enemies.items():
                 positions.append([e_id, e_unit.pos.x, e_unit.pos.y, e_unit.health])
+            positions.append(self.base.resources_amount)
             # positions.insert(0,self._episode_steps)
             print(positions, ",")
 
@@ -546,6 +547,7 @@ class GatherDefendEnv(MultiAgentEnv):
                     positions.append([agent_id, unit.pos.x, unit.pos.y, list(unit.resources_loaded)])
                 for e_id, e_unit in self.enemies.items():
                     positions.append([e_id, e_unit.pos.x, e_unit.pos.y, e_unit.health])
+                positions.append(self.base.resources_amount)
                 # positions.insert(0,self._episode_steps)
                 print(positions, ",")
 
