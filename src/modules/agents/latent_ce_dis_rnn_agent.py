@@ -83,6 +83,7 @@ class LatentCEDisRNNAgent(nn.Module):
                                       (self.latent_infer[:, self.latent_dim:]) ** (1 / 2))
 
             loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, gaussian_infer).sum()  # CE = H + KL
+            loss = th.clamp(loss, max=1e8)
 
             # Dis Loss
             cur_dis_loss_weight = self.dis_loss_weight_schedule(t_glob)
