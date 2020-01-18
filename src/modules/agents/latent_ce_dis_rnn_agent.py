@@ -77,7 +77,8 @@ class LatentCEDisRNNAgent(nn.Module):
         if train_mode:
             self.latent_infer = F.relu(self.inference_fc1(th.cat([h_in.detach(), inputs], dim=1)))
             self.latent_infer = self.inference_fc2(self.latent_infer)  # (n,2*latent_dim)==(n,mu+log var)
-            self.latent_infer[:, -self.latent_dim:] = th.exp(self.latent_infer[:, -self.latent_dim:])
+            self.latent_infer[:, -self.latent_dim:] = th.clamp(th.exp(self.latent_infer[:, -self.latent_dim:]),
+                                                               min=1e-5)
             gaussian_infer = D.Normal(self.latent_infer[:, :self.latent_dim],
                                       (self.latent_infer[:, self.latent_dim:]) ** (1 / 2))
 
