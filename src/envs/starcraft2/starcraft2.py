@@ -559,7 +559,7 @@ class StarCraft2Env(MultiAgentEnv):
         else:
             # attack/heal units that are in range
             target_id = action - self.n_actions_no_attack
-            if self.map_type == "MMM" and unit.unit_type == self.medivac_id:
+            if self.map_type in ["MMM", "GMMM"] and unit.unit_type == self.medivac_id:
                 target_unit = self.agents[target_id]
                 action_name = "heal"
             else:
@@ -1029,7 +1029,7 @@ class StarCraft2Env(MultiAgentEnv):
                     al_unit.health / al_unit.health_max
                 )  # health
                 if (
-                    self.map_type == "MMM"
+                    self.map_type in ["MMM", "GMMM"]
                     and al_unit.unit_type == self.medivac_id
                 ):
                     ally_state[al_id, 1] = al_unit.energy / max_cd  # energy
@@ -1178,6 +1178,15 @@ class StarCraft2Env(MultiAgentEnv):
                     type_id = 1
                 else:
                     type_id = 2
+            elif self.map_type == "GMMM":
+                if unit.unit_type == 51:
+                    type_id = 0
+                elif unit.unit_type == 48:
+                    type_id = 1
+                elif unit.unit_type == 54:
+                    type_id = 2
+                else:
+                    type_id = 3
 
         return type_id
 
@@ -1205,7 +1214,7 @@ class StarCraft2Env(MultiAgentEnv):
             shoot_range = self.unit_shoot_range(agent_id)
 
             target_items = self.enemies.items()
-            if self.map_type == "MMM" and unit.unit_type == self.medivac_id:
+            if self.map_type in ["MMM", "GMMM"] and unit.unit_type == self.medivac_id:
                 # Medivacs cannot heal themselves or other flying units
                 target_items = [
                     (t_id, t_unit)
@@ -1377,6 +1386,11 @@ class StarCraft2Env(MultiAgentEnv):
             self.marauder_id = min_unit_type
             self.marine_id = min_unit_type + 1
             self.medivac_id = min_unit_type + 2
+        elif self.map_type == 'GMMM':
+            self.marauder_id = min_unit_type
+            self.marine_id = min_unit_type + 1
+            self.medivac_id = min_unit_type + 2
+            self.ghost_id = min_unit_type + 3
         elif self.map_type == "zealots":
             self.zealot_id = min_unit_type
         elif self.map_type == "hydralisks":
@@ -1391,7 +1405,7 @@ class StarCraft2Env(MultiAgentEnv):
 
     def only_medivac_left(self, ally):
         """Check if only Medivac units are left."""
-        if self.map_type != "MMM":
+        if self.map_type not in ["MMM", "GMMM"]:
             return False
 
         if ally:
