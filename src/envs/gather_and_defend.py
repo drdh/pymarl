@@ -99,6 +99,7 @@ class GatherDefendEnv(MultiAgentEnv):
             obs_instead_of_state=False,
             obs_timestep_number=False,
             obs_resources=False,
+            obs_base_resources_amount=False,
             state_last_action=True,
             state_timestep_number=False,
             reward_sparse=False,
@@ -150,6 +151,7 @@ class GatherDefendEnv(MultiAgentEnv):
         self.state_last_action = state_last_action
         if self.obs_all_health:
             self.obs_own_health = True
+        self.obs_base_resources_amount = obs_base_resources_amount
 
         # Rewards args
         self.reward_sparse = reward_sparse
@@ -207,7 +209,7 @@ class GatherDefendEnv(MultiAgentEnv):
         max_integrate = self.episode_limit / 8
         self.max_reward = (max_kill * (self.reward_death_value + self.enemy_health * self.reward_defeat)
                            + self.reward_win
-                           + max_integrate * self.reward_integrate) / 2
+                           + max_integrate * self.reward_integrate) * 2
 
         self.agents = {}
         self.enemies = {}
@@ -337,6 +339,7 @@ class GatherDefendEnv(MultiAgentEnv):
                             reward_gather /= 2 * 2
 
                     self.base.resources_amount[res_i] += 1
+                    unit.resources_loaded[res_i] = False
                     unit.resources_loaded[res_i] = False
                     unit.loaded = False
 
@@ -622,7 +625,10 @@ class GatherDefendEnv(MultiAgentEnv):
         ally_feats = np.zeros((self.n_agents - 1, nf_al), dtype=np.float32)
         own_feats = np.zeros(nf_own, dtype=np.float32)
         resources_feats = np.zeros(2*self.n_resources, np.float32)
-        base_feats = np.zeros(3 + self.n_resources, np.float32)
+        if self.obs_base_resources_amount:
+            base_feats = np.zeros(3 + self.n_resources, np.float32)
+        else:
+            base_feats = np.zeros(3, np.float32)
         barrack_feats = np.zeros(3, np.float32)
 
         if unit.health > 0:  # otherwise dead, return all zeros
@@ -710,8 +716,9 @@ class GatherDefendEnv(MultiAgentEnv):
         base_feats[0] = (self.base_x - x) / sight_range
         base_feats[1] = (self.base_y - y) / sight_range
         base_feats[2] = self.base.health / self.base.max_health
-        for res_i in range(self.n_resources):
-            base_feats[3 + res_i] = self.base.resources_amount[res_i] / self.episode_limit * 10
+        if self.obs_base_resources_amount:
+            for res_i in range(self.n_resources):
+                base_feats[3 + res_i] = self.base.resources_amount[res_i] / self.episode_limit * 10
 
         if self.has_barrack:
             barrack_feats[0] = (self.barrack_x - x) / sight_range
@@ -809,10 +816,17 @@ class GatherDefendEnv(MultiAgentEnv):
         for resource_i in range(self.n_resources):
             state = np.append(state, np.array([(self.resources[resource_i].pos.x-center_x) / self.map_x,
                                                (self.resources[resource_i].pos.y-center_y) / self.map_y]))
-        state = np.append(state, np.array([(self.base_x - center_x) / self.map_x,
-                                           (self.base_y - center_y) / self.map_y,
-                                           self.base.health / self.base.max_health] +
-                                          [ras / self.episode_limit for ras in self.base.resources_amount]))
+
+        if self.obs_base_resources_amount:
+            state = np.append(state, np.array([(self.base_x - center_x) / self.map_x,
+                                               (self.base_y - center_y) / self.map_y,
+                                               self.base.health / self.base.max_health] +
+                                              [ras / self.episode_limit for ras in self.base.resources_amount]))
+        else:
+            state = np.append(state, np.array([(self.base_x - center_x) / self.map_x,
+                                               (self.base_y - center_y) / self.map_y,
+                                               self.base.health / self.base.max_health]))
+
         if self.has_barrack:
             state = np.append(state, np.array([(self.barrack_x - center_x) / self.map_x,
                                                (self.barrack_y - center_y) / self.map_y,
@@ -845,7 +859,11 @@ class GatherDefendEnv(MultiAgentEnv):
         enemy_feats = self.n_enemies * nf_en
         ally_feats = (self.n_agents - 1) * nf_al
 
-        base_feats = self.n_resources + 3   # TODO: Add n_resources? If so, role can be dynamic. Thus, leave it only for now
+        if self.obs_base_resources_amount:
+            base_feats = self.n_resources + 3   # TODO: Add n_resources? If so, role can be dynamic. Thus, leave it only for now
+        else:
+            base_feats = 3
+
         resources_feats = 2 * self.n_resources if self.obs_resources else 0
         barrack_feats = 3 if self.has_barrack else 0
 
@@ -867,7 +885,10 @@ class GatherDefendEnv(MultiAgentEnv):
         if self.state_last_action:
             size += self.n_agents * self.n_actions
 
-        size += 3 + self.n_resources + 2 * self.n_resources
+        if self.obs_base_resources_amount:
+            size += 3 + self.n_resources + 2 * self.n_resources
+        else:
+            size += 3 + 2 * self.n_resources
 
         if self.has_barrack:
             size += 3

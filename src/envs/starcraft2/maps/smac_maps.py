@@ -222,14 +222,23 @@ map_param_registry = {
         "map_type": "colossus",
     },
     "GMMM": {
-        "n_agents": 13,
-        "n_enemies": 13,
+        "n_agents": 12,
+        "n_enemies": 12,
         "limit": 180,
         "a_race": "T",
         "b_race": "T",
         "unit_type_bits": 4,
         "map_type": "GMMM",
     },
+    "MMM3": {
+        "n_agents": 12,
+        "n_enemies": 12,
+        "limit": 180,
+        "a_race": "T",
+        "b_race": "T",
+        "unit_type_bits": 4,
+        "map_type": "GMMM",
+    }
 }
 
 

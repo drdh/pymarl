@@ -177,7 +177,7 @@ class LatentDisRNNAgent(nn.Module):
         # Obs to role
         latent_last = self.latent.detach()
         self.latent = self.embed_fc(inputs.detach())  # (n,2*latent_dim)==(n,mu+log var)
-        self.latent[:, self.latent_dim:] = th.exp(self.latent[:, self.latent_dim:])  # var
+        self.latent[:, self.latent_dim:] = th.clamp(th.exp(self.latent[:, self.latent_dim:]), min=1e-5)  # var
 
         gaussian_embed = D.Normal(self.latent[:, :self.latent_dim], self.latent[:, self.latent_dim:])
         latent = gaussian_embed.rsample()  # Sample a role
@@ -210,7 +210,7 @@ class LatentDisRNNAgent(nn.Module):
                         latent_dis_pair = th.cat(
                             [latent_dis[:, :, :self.latent_dim], latent_move[:, :, :self.latent_dim]], dim=2)
                         mi = (13.9 + th.clamp(gaussian_embed.log_prob(latent_move.view(self.bs * self.n_agents, -1)),
-                                              -13.9, 0)).sum(dim=1,
+                                              min=-13.9)).sum(dim=1,
                                                              keepdim=True) / self.latent_dim
 
                         dissimilarity = th.abs(self.dis_net(latent_dis_pair.view(-1, 2 * self.latent_dim)))
@@ -343,7 +343,8 @@ class LatentDisRNNAgent(nn.Module):
         return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss, c_dis_loss, ce_loss
 
     def dis_loss_weight_schedule(self, t_glob):
-        if t_glob > self.args.dis_time:
+        if t_glob > 10000000:
             return self.args.dis_loss_weight
         else:
             return 0
+        # return 0
