@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import enum
 import math
-from smac.env.multiagentenv import MultiAgentEnv
+from .multiagentenv import MultiAgentEnv
 import random
 import numpy as np
 
