@@ -223,7 +223,7 @@ map_param_registry = {
     },
     "GMMM": {
         "n_agents": 12,
-        "n_enemies": 12,
+        "n_enemies": 14,
         "limit": 180,
         "a_race": "T",
         "b_race": "T",
@@ -232,7 +232,7 @@ map_param_registry = {
     },
     "MMM3": {
         "n_agents": 12,
-        "n_enemies": 12,
+        "n_enemies": 14,
         "limit": 180,
         "a_race": "T",
         "b_race": "T",
