@@ -271,7 +271,7 @@ class StarCraft2Env(MultiAgentEnv):
         self._min_unit_type = 0
         self.marine_id = self.marauder_id = self.medivac_id = 0
         self.hydralisk_id = self.zergling_id = self.baneling_id = 0
-        self.stalker_id = self.colossus_id = self.zealot_id = 0
+        self.stalker_id = self.colossus_id = self.zealot_id = self.sentry_id = 0
         self.max_distance_x = 0
         self.max_distance_y = 0
         self.map_x = 0
@@ -718,6 +718,7 @@ class StarCraft2Env(MultiAgentEnv):
             self.marauder_id: 25,
             self.medivac_id: 200,  # max energy
             self.stalker_id: 35,
+            self.sentry_id: 22,
             self.zealot_id: 22,
             self.colossus_id: 24,
             self.hydralisk_id: 10,
@@ -742,6 +743,8 @@ class StarCraft2Env(MultiAgentEnv):
             return 50  # Protoss's Zaelot
         if unit.unit_type == 4 or unit.unit_type == self.colossus_id:
             return 150  # Protoss's Colossus
+        if unit.unit_type == 98 or unit.unit_type == self.sentry_id:
+            return 40  # Protoss's Sentry
 
     def can_move(self, unit, direction):
         """Whether a unit can move in a given direction."""
@@ -1168,6 +1171,12 @@ class StarCraft2Env(MultiAgentEnv):
                     type_id = 1
                 else:
                     type_id = 2
+            elif self.map_type == "stalkers_and_sentries":
+                # id(Stalker) = 74, id(Sentry) = 98
+                if unit.unit_type == 98:
+                    type_id = 1
+                elif unit.unit_type == 74:
+                    type_id = 0
             elif self.map_type == "bane":
                 if unit.unit_type == 9:
                     type_id = 0
@@ -1380,6 +1389,9 @@ class StarCraft2Env(MultiAgentEnv):
         elif self.map_type == "stalkers_and_zealots":
             self.stalker_id = min_unit_type
             self.zealot_id = min_unit_type + 1
+        elif self.map_type == "stalkers_and_sentries":
+            self.stalker_id = min_unit_type
+            self.sentry_id = min_unit_type + 1
         elif self.map_type == "colossi_stalkers_zealots":
             self.colossus_id = min_unit_type
             self.stalker_id = min_unit_type + 1
