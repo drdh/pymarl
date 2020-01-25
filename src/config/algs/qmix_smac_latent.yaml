@@ -34,6 +34,7 @@ dis_loss_weight: 0.001
 dis_cur: True
 dis_net: True
 dis_time: 5000000
+dis_sigmoid: False
 
 evolve_balance: 0.999
 snail_max_t: 128

@@ -53,6 +53,11 @@ class LatentDisRNNAgent(nn.Module):
             else:
                 self.forward = self.forward_hist
 
+        if args.dis_sigmoid:
+            self.dis_loss_weight_schedule = self.dis_loss_weight_schedule_sigmoid
+        else:
+            self.dis_loss_weight_schedule = self.dis_loss_weight_schedule_step
+
     def init_latent(self, bs):
         self.bs = max(1, bs)
         loss = 0
@@ -197,6 +202,7 @@ class LatentDisRNNAgent(nn.Module):
                 # gaussian_hist_sample = gaussian_hist.rsample()
                 loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed,
                                                                       gaussian_hist).sum()  # CE = H + KL
+                loss = th.clamp(loss, max=1/self.args.entropy_loss_weight)
 
                 # Dis Loss
                 cur_dis_loss_weight = self.dis_loss_weight_schedule(t_glob)
@@ -223,7 +229,7 @@ class LatentDisRNNAgent(nn.Module):
 
                         dis_loss -= (mi + dissimilarity).sum() / self.bs / self.n_agents
 
-                    dis_norm = th.norm(dissimilarity_cat, p=1, dim=1).sum() / self.bs
+                    dis_norm = th.norm(dissimilarity_cat, p=1, dim=1).sum() / self.bs / self.n_agents / self.n_agents
 
                     c_dis_loss = (dis_loss + dis_norm) / self.n_agents
                     loss = loss / (self.bs * self.n_agents)
@@ -343,9 +349,12 @@ class LatentDisRNNAgent(nn.Module):
                                       global_step=t, tag="latent-hist")
         return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss, c_dis_loss, ce_loss
 
-    def dis_loss_weight_schedule(self, t_glob):
+    def dis_loss_weight_schedule_step(self, t_glob):
         if t_glob > 10000000:
             return self.args.dis_loss_weight
         else:
             return 0
         # return 0
+
+    def dis_loss_weight_schedule_sigmoid(self, t_glob):
+        return 0.01 / (1 + math.exp((1e7 - t_glob) / 2e6))
