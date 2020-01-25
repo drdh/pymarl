@@ -44,6 +44,12 @@ class LatentCEDisRNNAgent(nn.Module):
                                      nn.ReLU(),
                                      nn.Linear(args.latent_dim * 4, 1))
 
+        if args.dis_sigmoid:
+            self.dis_loss_weight_schedule = self.dis_loss_weight_schedule_sigmoid
+        else:
+            self.dis_loss_weight_schedule = self.dis_loss_weight_schedule_step
+
+
     def init_latent(self, bs):
         self.bs = bs
         loss = 0
@@ -147,8 +153,11 @@ class LatentCEDisRNNAgent(nn.Module):
 
         return q.view(-1, self.args.n_actions), h.view(-1, self.args.rnn_hidden_dim), loss, c_dis_loss, ce_loss
 
-    def dis_loss_weight_schedule(self, t_glob):
+    def dis_loss_weight_schedule_step(self, t_glob):
         if t_glob > self.args.dis_time:
             return self.args.dis_loss_weight
         else:
             return 0
+
+    def dis_loss_weight_schedule_sigmoid(self, t_glob):
+        return 0.01 / (1 + math.exp((1e7 - t_glob) / 2e6))

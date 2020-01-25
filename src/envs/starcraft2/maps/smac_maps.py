@@ -194,6 +194,15 @@ map_param_registry = {
         "unit_type_bits": 0,
         "map_type": "stalkers",
     },
+    "ss_vs_5sc": {
+        "n_agents": 11,
+        "n_enemies": 5,
+        "limit": 300,
+        "a_race": "P",
+        "b_race": "Z",
+        "unit_type_bits": 2,
+        "map_type": "stalkers_and_sentries",
+    },
     "so_many_baneling": {
         "n_agents": 7,
         "n_enemies": 32,
