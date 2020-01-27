@@ -235,7 +235,7 @@ class LatentDisRNNAgent(nn.Module):
                     c_dis_loss = (dis_loss + dis_norm) / self.n_agents
                     loss = loss / (self.bs * self.n_agents)
                     ce_loss = th.log(1 + th.exp(loss))
-                    loss = ce_loss + self.args.dis_loss_weight * c_dis_loss
+                    loss = ce_loss + cur_dis_loss_weight * c_dis_loss
                 else:
                     loss = loss / (self.bs * self.n_agents)
                     loss = th.log(1 + th.exp(loss))
