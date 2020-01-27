@@ -44,6 +44,7 @@ class LatentDisRNNAgent(nn.Module):
 
         if args.dis_cur:
             if args.dis_net:
+                print('>>> cur dis')
                 self.forward = self.forward_cur_dis_net
             else:
                 self.forward = self.forward_cur
