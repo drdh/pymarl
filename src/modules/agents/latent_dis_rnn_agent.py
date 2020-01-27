@@ -203,7 +203,7 @@ class LatentDisRNNAgent(nn.Module):
                 # gaussian_hist_sample = gaussian_hist.rsample()
                 loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed,
                                                                       gaussian_hist).sum()  # CE = H + KL
-                loss = th.clamp(loss, max=1/self.args.entropy_loss_weight)
+                loss = th.clamp(loss, max=1/(self.args.entropy_loss_weight+1e-8))
 
                 # Dis Loss
                 cur_dis_loss_weight = self.dis_loss_weight_schedule(t_glob)
