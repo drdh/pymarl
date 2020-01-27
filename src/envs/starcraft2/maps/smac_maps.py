@@ -248,15 +248,15 @@ map_param_registry = {
         "unit_type_bits": 4,
         "map_type": "GMMM",
     },
-    "ss_vs_5sc": {
-        "n_agents": 11,
-        "n_enemies": 5,
+    "ss": {
+        "n_agents": 12,
+        "n_enemies": 14,
         "limit": 300,
         "a_race": "P",
-        "b_race": "Z",
+        "b_race": "P",
         "unit_type_bits": 2,
         "map_type": "stalkers_and_sentries",
-    },
+    }
 }
 
 

@@ -742,7 +742,7 @@ class StarCraft2Env(MultiAgentEnv):
             return 50  # Protoss's Zaelot
         if unit.unit_type == 4 or unit.unit_type == self.colossus_id:
             return 150  # Protoss's Colossus
-        if unit.unit_type == 98 or unit.unit_type == self.sentry_id:
+        if unit.unit_type == 77 or unit.unit_type == self.sentry_id:
             return 40  # Protoss's Sentry
 
     def can_move(self, unit, direction):
@@ -1171,8 +1171,8 @@ class StarCraft2Env(MultiAgentEnv):
                 else:
                     type_id = 2
             elif self.map_type == "stalkers_and_sentries":
-                # id(Stalker) = 74, id(Sentry) = 98
-                if unit.unit_type == 98:
+                # id(Stalker) = 74, id(Sentry) = 77
+                if unit.unit_type == 77:
                     type_id = 1
                 elif unit.unit_type == 74:
                     type_id = 0
@@ -1389,8 +1389,8 @@ class StarCraft2Env(MultiAgentEnv):
             self.stalker_id = min_unit_type
             self.zealot_id = min_unit_type + 1
         elif self.map_type == "stalkers_and_sentries":
-            self.stalker_id = min_unit_type
-            self.sentry_id = min_unit_type + 1
+            self.stalker_id = min_unit_type + 1
+            self.sentry_id = min_unit_type
         elif self.map_type == "colossi_stalkers_zealots":
             self.colossus_id = min_unit_type
             self.stalker_id = min_unit_type + 1
