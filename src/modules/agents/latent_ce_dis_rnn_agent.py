@@ -80,7 +80,7 @@ class LatentCEDisRNNAgent(nn.Module):
         ce_loss = 0
         loss = 0
 
-        if 1:
+        if train_mode:
             self.latent_infer = F.relu(self.inference_fc1(th.cat([h_in.detach(), inputs], dim=1)))
             self.latent_infer = self.inference_fc2(self.latent_infer)  # (n,2*latent_dim)==(n,mu+log var)
             self.latent_infer[:, -self.latent_dim:] = th.clamp(th.exp(self.latent_infer[:, -self.latent_dim:]),
@@ -93,7 +93,7 @@ class LatentCEDisRNNAgent(nn.Module):
 
             # Dis Loss
             cur_dis_loss_weight = self.dis_loss_weight_schedule(t_glob)
-            if cur_dis_loss_weight > -1:
+            if cur_dis_loss_weight > 0:
                 dis_loss = 0
                 dissimilarity_cat = None
                 latent_dis = latent.clone().view(self.bs, self.n_agents, -1)
