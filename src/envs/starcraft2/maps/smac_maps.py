@@ -256,6 +256,15 @@ map_param_registry = {
         "b_race": "P",
         "unit_type_bits": 2,
         "map_type": "stalkers_and_sentries",
+    },
+    "ss10": {
+        "n_agents": 12,
+        "n_enemies": 13,
+        "limit": 300,
+        "a_race": "P",
+        "b_race": "P",
+        "unit_type_bits": 2,
+        "map_type": "stalkers_and_sentries",
     }
 }
 
