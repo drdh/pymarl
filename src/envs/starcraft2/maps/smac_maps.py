@@ -274,7 +274,7 @@ map_param_registry = {
         "b_race": "P",
         "unit_type_bits": 2,
         "map_type": "stalkers_and_sentries",
-    }
+    },
     "ss10fe": {
         "n_agents": 10,
         "n_enemies": 10,
@@ -283,6 +283,15 @@ map_param_registry = {
         "b_race": "P",
         "unit_type_bits": 2,
         "map_type": "stalkers_and_sentries",
+    },
+    "bane_vs_bane1": {
+        "n_agents": 10,
+        "n_enemies": 10,
+        "limit": 200,
+        "a_race": "Z",
+        "b_race": "Z",
+        "unit_type_bits": 2,
+        "map_type": "bane",
     }
 }
 
