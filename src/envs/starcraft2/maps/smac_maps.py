@@ -328,6 +328,15 @@ map_param_registry = {
         "b_race": "Z",
         "unit_type_bits": 2,
         "map_type": "stalkers_and_zealots_vs_zb",
+    },
+    "3s2z_vs_11z5b": {
+        "n_agents": 5,
+        "n_enemies": 16,
+        "limit": 200,
+        "a_race": "P",
+        "b_race": "Z",
+        "unit_type_bits": 2,
+        "map_type": "stalkers_and_zealots_vs_zb",
     }
 }
 
