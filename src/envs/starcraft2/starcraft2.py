@@ -741,7 +741,7 @@ class StarCraft2Env(MultiAgentEnv):
         if unit.unit_type == 74 or unit.unit_type == self.stalker_id:
             return 80  # Protoss's Stalker
         if unit.unit_type == 73 or unit.unit_type == self.zealot_id:
-            return 50  # Protoss's Zaelot
+            return 50  # Protoss's Zealot
         if unit.unit_type == 4 or unit.unit_type == self.colossus_id:
             return 150  # Protoss's Colossus
         if unit.unit_type == 77 or unit.unit_type == self.sentry_id:
@@ -1166,6 +1166,12 @@ class StarCraft2Env(MultiAgentEnv):
             if self.map_type == "stalkers_and_zealots":
                 # id(Stalker) = 74, id(Zealot) = 73
                 type_id = unit.unit_type - 73
+            if self.map_type == "stalkers_and_zealots_vs_zb":
+                # id(Stalker) = 74, id() =
+                if unit.unit_type == 9:
+                    type_id = 0
+                else:
+                    type_id = 1
             elif self.map_type == "colossi_stalkers_zealots":
                 # id(Stalker) = 74, id(Zealot) = 73, id(Colossus) = 4
                 if unit.unit_type == 4:
@@ -1396,6 +1402,9 @@ class StarCraft2Env(MultiAgentEnv):
         if self.map_type == "marines":
             self.marine_id = min_unit_type
         elif self.map_type == "stalkers_and_zealots":
+            self.stalker_id = min_unit_type
+            self.zealot_id = min_unit_type + 1
+        elif self.map_type == "stalkers_and_zealots_vs_zb":
             self.stalker_id = min_unit_type
             self.zealot_id = min_unit_type + 1
         elif self.map_type == "stalkers_and_sentries":
