@@ -273,6 +273,7 @@ class StarCraft2Env(MultiAgentEnv):
         self.marine_id = self.marauder_id = self.medivac_id = 0
         self.hydralisk_id = self.zergling_id = self.baneling_id = 0
         self.stalker_id = self.colossus_id = self.zealot_id = self.sentry_id = 0
+        self.void_ray_id = 0
         self.max_distance_x = 0
         self.max_distance_y = 0
         self.map_x = 0
@@ -717,6 +718,7 @@ class StarCraft2Env(MultiAgentEnv):
             self.marauder_id: 25,
             self.medivac_id: 200,  # max energy
             self.stalker_id: 35,
+            self.void_ray_id: 35,
             self.sentry_id: 22,
             self.zealot_id: 22,
             self.colossus_id: 24,
@@ -744,6 +746,8 @@ class StarCraft2Env(MultiAgentEnv):
             return 150  # Protoss's Colossus
         if unit.unit_type == 77 or unit.unit_type == self.sentry_id:
             return 40  # Protoss's Sentry
+        if unit.unit_type == self.void_ray_id:
+            return 100  # Protoss's Void Ray
 
     def can_move(self, unit, direction):
         """Whether a unit can move in a given direction."""
@@ -1176,6 +1180,12 @@ class StarCraft2Env(MultiAgentEnv):
                     type_id = 1
                 elif unit.unit_type == 74:
                     type_id = 0
+            elif self.map_type == "zv_mb":
+                # id(Battlecrusier) = 57, id(Marine) = 48
+                if unit.unit_type == 57:
+                    type_id = 1
+                elif unit.unit_type == 48:
+                    type_id = 0
             elif self.map_type == "bane":
                 if unit.unit_type == 9:
                     type_id = 0
@@ -1395,6 +1405,9 @@ class StarCraft2Env(MultiAgentEnv):
             self.colossus_id = min_unit_type
             self.stalker_id = min_unit_type + 1
             self.zealot_id = min_unit_type + 2
+        elif self.map_type == "zv_mb":
+            self.void_ray_id = min_unit_type
+            self.zealot_id = min_unit_type + 1
         elif self.map_type == "MMM":
             self.marauder_id = min_unit_type
             self.marine_id = min_unit_type + 1

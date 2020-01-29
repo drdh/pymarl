@@ -301,6 +301,15 @@ map_param_registry = {
         "b_race": "Z",
         "unit_type_bits": 2,
         "map_type": "bane",
+    },
+    "4z6v_vs_9m4b": {
+        "n_agents": 10,
+        "n_enemies": 13,
+        "limit": 200,
+        "a_race": "P",
+        "b_race": "T",
+        "unit_type_bits": 2,
+        "map_type": "zv_mb",
     }
 }
 
