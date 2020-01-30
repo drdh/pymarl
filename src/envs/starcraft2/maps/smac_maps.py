@@ -311,9 +311,9 @@ map_param_registry = {
         "unit_type_bits": 2,
         "map_type": "zv_mb",
     },
-    "6z7v_vs_9m4b": {
-        "n_agents": 13,
-        "n_enemies": 13,
+    "zv_vs_mb": {
+        "n_agents": 11,
+        "n_enemies": 15,
         "limit": 200,
         "a_race": "P",
         "b_race": "T",
@@ -332,6 +332,15 @@ map_param_registry = {
     "3s2z_vs_11z5b": {
         "n_agents": 5,
         "n_enemies": 16,
+        "limit": 200,
+        "a_race": "P",
+        "b_race": "Z",
+        "unit_type_bits": 2,
+        "map_type": "stalkers_and_zealots_vs_zb",
+    },
+    "6s4z_vs_35z10b": {
+        "n_agents": 10,
+        "n_enemies": 45,
         "limit": 200,
         "a_race": "P",
         "b_race": "Z",
