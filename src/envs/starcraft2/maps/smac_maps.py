@@ -346,6 +346,24 @@ map_param_registry = {
         "b_race": "Z",
         "unit_type_bits": 2,
         "map_type": "stalkers_and_zealots_vs_zb",
+    },
+    "sz_vs_zb": {
+        "n_agents": 10,
+        "n_enemies": 40,
+        "limit": 200,
+        "a_race": "P",
+        "b_race": "Z",
+        "unit_type_bits": 2,
+        "map_type": "stalkers_and_zealots_vs_zb",
+    },
+    "zb_vs_sz": {
+        "n_agents": 15,
+        "n_enemies": 5,
+        "limit": 200,
+        "a_race": "Z",
+        "b_race": "P",
+        "unit_type_bits": 2,
+        "map_type": "bane_vs_sz",
     }
 }
 
