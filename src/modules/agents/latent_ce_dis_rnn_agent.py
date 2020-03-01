@@ -128,12 +128,12 @@ class LatentCEDisRNNAgent(nn.Module):
 
                 c_dis_loss = (dis_loss + dis_norm) / self.n_agents * cur_dis_loss_weight
                 loss = loss / (self.bs * self.n_agents)
-                ce_loss = th.log(1 + th.exp(loss))*self.args.entropy_loss_weight
+                ce_loss = th.log(1 + th.exp(loss))*self.args.ce_loss_weight
                 loss = ce_loss +  c_dis_loss
             else:
                 c_dis_loss = th.zeros_like(loss)
                 loss = loss / (self.bs * self.n_agents)
-                ce_loss = th.log(1 + th.exp(loss))*self.args.entropy_loss_weight
+                ce_loss = th.log(1 + th.exp(loss))*self.args.ce_loss_weight
                 loss = ce_loss
 
 
