@@ -70,6 +70,7 @@ class LatentCEDisRNNAgent(nn.Module):
         self.latent = F.relu(self.embed_fc1(embed_fc_input))
         self.latent = self.embed_fc2(self.latent)
         self.latent[:, -self.latent_dim:] = th.clamp(th.exp(self.latent[:, -self.latent_dim:]), min=1e-5)  # var
+        #self.latent[:, -self.latent_dim:] = th.full_like(self.latent[:, -self.latent_dim:],1.0)
 
         latent_embed = self.latent.reshape(self.bs * self.n_agents, self.latent_dim * 2)
         gaussian_embed = D.Normal(latent_embed[:, :self.latent_dim], (latent_embed[:, self.latent_dim:]) ** (1 / 2))
@@ -83,8 +84,8 @@ class LatentCEDisRNNAgent(nn.Module):
         if train_mode:
             self.latent_infer = F.relu(self.inference_fc1(th.cat([h_in.detach(), inputs], dim=1)))
             self.latent_infer = self.inference_fc2(self.latent_infer)  # (n,2*latent_dim)==(n,mu+log var)
-            self.latent_infer[:, -self.latent_dim:] = th.clamp(th.exp(self.latent_infer[:, -self.latent_dim:]),
-                                                               min=1e-5)
+            self.latent_infer[:, -self.latent_dim:] = th.clamp(th.exp(self.latent_infer[:, -self.latent_dim:]),min=1e-5)
+            #self.latent_infer[:, -self.latent_dim:] = th.full_like(self.latent_infer[:, -self.latent_dim:],1.0)
             gaussian_infer = D.Normal(self.latent_infer[:, :self.latent_dim],
                                       (self.latent_infer[:, self.latent_dim:]) ** (1 / 2))
 
