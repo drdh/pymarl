@@ -30,18 +30,19 @@ mac: "separate_mac"
 latent_dim: 2
 #entropy_loss_weight : 1.0
 ce_loss_weight: 1e-4
-hg_dim: 16
+#hg_dim: 16
+NN_HIDDEN_SIZE: 12
 dis_loss_weight: 1e-2
-dis_cur: True
-dis_net: True
+#dis_cur: True
+#dis_net: True
 dis_time: 5000000
 dis_sigmoid: False
 
-evolve_balance: 0.999
-snail_max_t: 128
-snail_key_size: 8
-snail_value_size: 8
-snail_filters: 8
+#evolve_balance: 0.999
+#snail_max_t: 128
+#snail_key_size: 8
+#snail_value_size: 8
+#snail_filters: 8
 
 use_tensorboard: True
 save_model: True
