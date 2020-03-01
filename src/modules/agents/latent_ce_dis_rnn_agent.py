@@ -23,15 +23,22 @@ class LatentCEDisRNNAgent(nn.Module):
         self.embed_fc_input_size = input_shape
 
         self.embed_fc1 = nn.Linear(self.embed_fc_input_size, args.latent_dim * 4)
+        self.embed_fc1_bn = nn.BatchNorm1d(args.latent_dim*4)
         self.embed_fc2 = nn.Linear(args.latent_dim * 4, args.latent_dim * 2)
+        #self.embed_fc2_bn = nn.BatchNorm1d(args.latent_dim*2)
+
         self.inference_fc1 = nn.Linear(args.rnn_hidden_dim + input_shape, args.latent_dim * 4)
+        self.inference_fc1_bn = nn.BatchNorm1d(args.latent_dim*4)
         self.inference_fc2 = nn.Linear(args.latent_dim * 4, args.latent_dim * 2)
+        #self.inference_fc2_bn = nn.BatchNorm1d(args.latent_dim *2 )
 
         self.latent = th.rand(args.n_agents, args.latent_dim * 2)  # (n,mu+var)
         self.latent_infer = th.rand(args.n_agents, args.latent_dim * 2)  # (n,mu+var)
 
         self.latent_fc1 = nn.Linear(args.latent_dim, args.latent_dim * 4)
-        self.latent_fc2 = nn.Linear(args.latent_dim * 4, args.latent_dim * 4)
+        self.latent_fc1_bn = nn.BatchNorm1d(args.latent_dim *4 )
+        #self.latent_fc2 = nn.Linear(args.latent_dim * 4, args.latent_dim * 4)
+        #self.latent_fc2_bn = nn.BatchNorm1d(args.latent_dim*4)
 
         self.fc1 = nn.Linear(input_shape, args.rnn_hidden_dim)
         self.rnn = nn.GRUCell(args.rnn_hidden_dim, args.rnn_hidden_dim)
@@ -67,7 +74,7 @@ class LatentCEDisRNNAgent(nn.Module):
 
         embed_fc_input = inputs[:, - self.embed_fc_input_size:]  # own features(unit_type_bits+shield_bits_ally)+id
 
-        self.latent = F.relu(self.embed_fc1(embed_fc_input))
+        self.latent = F.relu(self.embed_fc1_bn(self.embed_fc1(embed_fc_input)))
         self.latent = self.embed_fc2(self.latent)
         self.latent[:, -self.latent_dim:] = th.clamp(th.exp(self.latent[:, -self.latent_dim:]), min=1e-5)  # var
         #self.latent[:, -self.latent_dim:] = th.full_like(self.latent[:, -self.latent_dim:],1.0)
@@ -82,7 +89,7 @@ class LatentCEDisRNNAgent(nn.Module):
         loss = 0
 
         if train_mode:
-            self.latent_infer = F.relu(self.inference_fc1(th.cat([h_in.detach(), inputs], dim=1)))
+            self.latent_infer = F.relu(self.inference_fc1_bn(self.inference_fc1(th.cat([h_in.detach(), inputs], dim=1))))
             self.latent_infer = self.inference_fc2(self.latent_infer)  # (n,2*latent_dim)==(n,mu+log var)
             self.latent_infer[:, -self.latent_dim:] = th.clamp(th.exp(self.latent_infer[:, -self.latent_dim:]),min=1e-5)
             #self.latent_infer[:, -self.latent_dim:] = th.full_like(self.latent_infer[:, -self.latent_dim:],1.0)
@@ -130,8 +137,8 @@ class LatentCEDisRNNAgent(nn.Module):
                 c_dis_loss = th.zeros_like(loss)
 
         # Role -> FC2 Params
-        latent = F.relu(self.latent_fc1(latent))
-        latent = F.relu(self.latent_fc2(latent))
+        latent = F.relu(self.latent_fc1_bn(self.latent_fc1(latent)))
+        #latent = F.relu(self.latent_fc2(latent))
 
         fc2_w = self.fc2_w_nn(latent)
         fc2_b = self.fc2_b_nn(latent)
