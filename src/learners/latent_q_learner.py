@@ -139,7 +139,7 @@ class LatentQLearner(QLearner):
         # mac_out_latent_norm=th.sqrt(th.sum(mac_out_latent*mac_out_latent,dim=1))
         # mac_out_latent=mac_out_latent/mac_out_latent_norm[:,None]
         # loss+=(th.norm(mac_out_latent)/mac_out_latent.size(0))*self.args.entropy_loss_weight
-        loss += reg_loss * self.args.entropy_loss_weight
+        loss += reg_loss
 
         # Optimise
         self.optimiser.zero_grad()
@@ -164,7 +164,7 @@ class LatentQLearner(QLearner):
             #    self.role_save += 1
 
             self.logger.log_stat("loss", loss.item(), t_env)
-            self.logger.log_stat("loss_reg", (reg_loss / self.args.dis_loss_weight).item(), t_env)
+            self.logger.log_stat("loss_reg", reg_loss.item(), t_env)
             self.logger.log_stat("loss_dis", dis_loss.item(), t_env)
             self.logger.log_stat("loss_ce", ce_loss.item(), t_env)
             self.logger.log_stat("grad_norm", grad_norm, t_env)

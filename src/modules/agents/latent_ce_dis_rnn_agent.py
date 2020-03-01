@@ -126,15 +126,16 @@ class LatentCEDisRNNAgent(nn.Module):
 
                 dis_norm = th.norm(dissimilarity_cat, p=1, dim=1).sum() / self.bs / self.n_agents
 
-                c_dis_loss = (dis_loss + dis_norm) / self.n_agents
+                c_dis_loss = (dis_loss + dis_norm) / self.n_agents * cur_dis_loss_weight
                 loss = loss / (self.bs * self.n_agents)
-                ce_loss = th.log(1 + th.exp(loss))
-                loss = ce_loss + cur_dis_loss_weight * c_dis_loss
+                ce_loss = th.log(1 + th.exp(loss))*self.args.entropy_loss_weight
+                loss = ce_loss +  c_dis_loss
             else:
-                loss = loss / (self.bs * self.n_agents)
-                loss = th.log(1 + th.exp(loss))
-                ce_loss = loss
                 c_dis_loss = th.zeros_like(loss)
+                loss = loss / (self.bs * self.n_agents)
+                ce_loss = th.log(1 + th.exp(loss))*self.args.entropy_loss_weight
+                loss = ce_loss
+
 
         # Role -> FC2 Params
         latent = F.relu(self.latent_fc1_bn(self.latent_fc1(latent)))
@@ -168,4 +169,4 @@ class LatentCEDisRNNAgent(nn.Module):
             return 0
 
     def dis_loss_weight_schedule_sigmoid(self, t_glob):
-        return 0.01 / (1 + math.exp((1e7 - t_glob) / 2e6))
+        return self.args.dis_loss_weight / (1 + math.exp((1e7 - t_glob) / 2e6))
