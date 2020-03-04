@@ -21,15 +21,16 @@ class LatentCEDisRNNAgent(nn.Module):
 
         self.embed_fc_input_size = input_shape
         NN_HIDDEN_SIZE = args.NN_HIDDEN_SIZE
+        activation_func=nn.ReLU()
 
         self.embed_net = nn.Sequential(nn.Linear(self.embed_fc_input_size, NN_HIDDEN_SIZE),
                                        nn.BatchNorm1d(NN_HIDDEN_SIZE),
-                                       nn.ReLU(),
+                                       activation_func,
                                        nn.Linear(NN_HIDDEN_SIZE, args.latent_dim * 2))
 
         self.inference_net = nn.Sequential(nn.Linear(args.rnn_hidden_dim + input_shape, NN_HIDDEN_SIZE),
                                            nn.BatchNorm1d(NN_HIDDEN_SIZE),
-                                           nn.ReLU(),
+                                           activation_func,
                                            nn.Linear(NN_HIDDEN_SIZE, args.latent_dim * 2))
 
         self.latent = th.rand(args.n_agents, args.latent_dim * 2)  # (n,mu+var)
@@ -37,7 +38,7 @@ class LatentCEDisRNNAgent(nn.Module):
 
         self.latent_net = nn.Sequential(nn.Linear(args.latent_dim, NN_HIDDEN_SIZE),
                                         nn.BatchNorm1d(NN_HIDDEN_SIZE),
-                                        nn.ReLU())
+                                        activation_func)
 
         self.fc1 = nn.Linear(input_shape, args.rnn_hidden_dim)
         self.rnn = nn.GRUCell(args.rnn_hidden_dim, args.rnn_hidden_dim)
@@ -48,7 +49,7 @@ class LatentCEDisRNNAgent(nn.Module):
         # Dis Net
         self.dis_net = nn.Sequential(nn.Linear(args.latent_dim * 2, NN_HIDDEN_SIZE),
                                      nn.BatchNorm1d(NN_HIDDEN_SIZE),
-                                     nn.ReLU(),
+                                     activation_func,
                                      nn.Linear(NN_HIDDEN_SIZE, 1))
 
         if args.dis_sigmoid:
@@ -91,12 +92,12 @@ class LatentCEDisRNNAgent(nn.Module):
             self.latent_infer = self.inference_net(th.cat([h_in.detach(), inputs], dim=1))
             self.latent_infer[:, -self.latent_dim:] = th.clamp(th.exp(self.latent_infer[:, -self.latent_dim:]),min=1e-5)
             #self.latent_infer[:, -self.latent_dim:] = th.full_like(self.latent_infer[:, -self.latent_dim:],1.0)
-            gaussian_infer = D.Normal(self.latent_infer[:, :self.latent_dim],
-                                      (self.latent_infer[:, self.latent_dim:]) ** (1 / 2))
+            gaussian_infer = D.Normal(self.latent_infer[:, :self.latent_dim], (self.latent_infer[:, self.latent_dim:]) ** (1 / 2))
 
-            #loss = gaussian_embed.entropy().sum() + kl_divergence(gaussian_embed, gaussian_infer).sum()  # CE = H + KL
-            loss =  kl_divergence(gaussian_embed, gaussian_infer).sum()
-            loss = th.clamp(loss, max=1/self.args.ce_loss_weight)
+            loss = gaussian_embed.entropy().sum() * self.args.h_loss_weight + kl_divergence(gaussian_embed, gaussian_infer).sum() * self.args.kl_loss_weight   # CE = H + KL
+            loss = th.clamp(loss, max=1/self.args.kl_loss_weight)
+            loss = loss / (self.bs * self.n_agents)
+            ce_loss = th.log(1 + th.exp(loss))
 
             # Dis Loss
             cur_dis_loss_weight = self.dis_loss_weight_schedule(t_glob)
@@ -126,13 +127,9 @@ class LatentCEDisRNNAgent(nn.Module):
                 dis_norm = th.norm(dissimilarity_cat, p=1, dim=1).sum() / self.bs / self.n_agents
 
                 c_dis_loss = (dis_loss + dis_norm) / self.n_agents * cur_dis_loss_weight
-                loss = loss / (self.bs * self.n_agents)
-                ce_loss = th.log(1 + th.exp(loss))*self.args.ce_loss_weight
                 loss = ce_loss +  c_dis_loss
             else:
                 c_dis_loss = th.zeros_like(loss)
-                loss = loss / (self.bs * self.n_agents)
-                ce_loss = th.log(1 + th.exp(loss))*self.args.ce_loss_weight
                 loss = ce_loss
 
 

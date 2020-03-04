@@ -29,7 +29,9 @@ mac: "separate_mac"
 
 latent_dim: 2
 #entropy_loss_weight : 1.0
-ce_loss_weight: 1e-4
+#ce_loss_weight: 1e-4
+kl_loss_weight: 1e-4
+h_loss_weight: 1e-6
 #hg_dim: 16
 NN_HIDDEN_SIZE: 12
 dis_loss_weight: 1e-2
