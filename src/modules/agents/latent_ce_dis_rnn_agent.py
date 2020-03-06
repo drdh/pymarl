@@ -67,7 +67,8 @@ class LatentCEDisRNNAgent(nn.Module):
                 "results/tb_logs/test_latent-" + time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime()))
         self.trajectory = []
 
-        return loss, self.latent[:self.n_agents, :].detach(), self.latent_infer[:self.n_agents, :].detach()
+        var_mean=self.latent[:self.n_agents, self.args.latent_dim:].detach().mean()
+        return var_mean, self.latent[:self.n_agents, :].detach(), self.latent_infer[:self.n_agents, :].detach()
 
     def forward(self, inputs, hidden_state, t=0, batch=None, test_mode=None, t_glob=0, train_mode=False):
         inputs = inputs.reshape(-1, self.input_shape)
@@ -76,7 +77,7 @@ class LatentCEDisRNNAgent(nn.Module):
         embed_fc_input = inputs[:, - self.embed_fc_input_size:]  # own features(unit_type_bits+shield_bits_ally)+id
 
         self.latent = self.embed_net(embed_fc_input)
-        self.latent[:, -self.latent_dim:] = th.clamp(th.exp(self.latent[:, -self.latent_dim:]), min=1e-5)  # var
+        self.latent[:, -self.latent_dim:] = th.clamp(th.exp(self.latent[:, -self.latent_dim:]), min=1e-3)  # var
         #self.latent[:, -self.latent_dim:] = th.full_like(self.latent[:, -self.latent_dim:],1.0)
 
         latent_embed = self.latent.reshape(self.bs * self.n_agents, self.latent_dim * 2)
@@ -90,7 +91,7 @@ class LatentCEDisRNNAgent(nn.Module):
 
         if train_mode:
             self.latent_infer = self.inference_net(th.cat([h_in.detach(), inputs], dim=1))
-            self.latent_infer[:, -self.latent_dim:] = th.clamp(th.exp(self.latent_infer[:, -self.latent_dim:]),min=1e-5)
+            self.latent_infer[:, -self.latent_dim:] = th.clamp(th.exp(self.latent_infer[:, -self.latent_dim:]),min=1e-3)
             #self.latent_infer[:, -self.latent_dim:] = th.full_like(self.latent_infer[:, -self.latent_dim:],1.0)
             gaussian_infer = D.Normal(self.latent_infer[:, :self.latent_dim], (self.latent_infer[:, self.latent_dim:]) ** (1 / 2))
 
