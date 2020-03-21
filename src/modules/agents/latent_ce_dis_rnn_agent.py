@@ -52,6 +52,9 @@ class LatentCEDisRNNAgent(nn.Module):
                                      activation_func,
                                      nn.Linear(NN_HIDDEN_SIZE, 1))
 
+        self.mi= th.rand(args.n_agents*args.n_agents)
+        self.dissimilarity = th.rand(args.n_agents*args.n_agents)
+
         if args.dis_sigmoid:
             print('>>> sigmoid')
             self.dis_loss_weight_schedule = self.dis_loss_weight_schedule_sigmoid
@@ -68,7 +71,14 @@ class LatentCEDisRNNAgent(nn.Module):
         self.trajectory = []
 
         var_mean=self.latent[:self.n_agents, self.args.latent_dim:].detach().mean()
-        return var_mean, self.latent[:self.n_agents, :].detach(), self.latent_infer[:self.n_agents, :].detach()
+
+        #mask = 1 - th.eye(self.n_agents).byte()
+        #mi=self.mi.view(self.n_agents,self.n_agents).masked_select(mask)
+        #di=self.dissimilarity.view(self.n_agents,self.n_agents).masked_select(mask)
+        mi = self.mi
+        di = self.dissimilarity
+        indicator=[var_mean,mi.max(),mi.min(),mi.mean(),mi.std(),di.max(),di.min(),di.mean(),di.std()]
+        return indicator, self.latent[:self.n_agents, :].detach(), self.latent_infer[:self.n_agents, :].detach()
 
     def forward(self, inputs, hidden_state, t=0, batch=None, test_mode=None, t_glob=0, train_mode=False):
         inputs = inputs.reshape(-1, self.input_shape)
@@ -127,8 +137,10 @@ class LatentCEDisRNNAgent(nn.Module):
                     else:
                         dissimilarity_cat = th.cat([dissimilarity_cat, dissimilarity.view(self.bs, -1)], dim=1)
 
-                    dis_loss -= (mi + dissimilarity).sum() / self.bs / self.n_agents
-
+                    #dis_loss -= (mi + dissimilarity).sum() / self.bs / self.n_agents
+                    dis_loss -= th.clamp(mi / 100 + dissimilarity, max=0.18).sum() / self.bs / self.n_agents
+                self.mi=mi
+                self.dissimilarity=dissimilarity
                 dis_norm = th.norm(dissimilarity_cat, p=1, dim=1).sum() / self.bs / self.n_agents
 
                 c_dis_loss = (dis_loss + dis_norm) / self.n_agents * cur_dis_loss_weight

@@ -55,7 +55,7 @@ class LatentQLearner(QLearner):
         mac_out = []
 
         self.mac.init_hidden(batch.batch_size)
-        var_mean, latent, latent_vae = self.mac.init_latent(batch.batch_size)
+        indicator, latent, latent_vae = self.mac.init_latent(batch.batch_size)
 
         reg_loss = 0
         dis_loss = 0
@@ -167,7 +167,18 @@ class LatentQLearner(QLearner):
             self.logger.log_stat("loss_reg", reg_loss.item(), t_env)
             self.logger.log_stat("loss_dis", dis_loss.item(), t_env)
             self.logger.log_stat("loss_ce", ce_loss.item(), t_env)
-            self.logger.log_stat("var_mean", var_mean.item(), t_env)
+
+            #indicator=[var_mean,mi.max(),mi.min(),mi.mean(),mi.std(),di.max(),di.min(),di.mean(),di.std()]
+            self.logger.log_stat("var_mean", indicator[0].item(), t_env)
+            self.logger.log_stat("mi_max", indicator[1].item(), t_env)
+            self.logger.log_stat("mi_min", indicator[2].item(), t_env)
+            self.logger.log_stat("mi_mean", indicator[3].item(), t_env)
+            self.logger.log_stat("mi_std", indicator[4].item(), t_env)
+            self.logger.log_stat("di_max", indicator[5].item(), t_env)
+            self.logger.log_stat("di_min", indicator[6].item(), t_env)
+            self.logger.log_stat("di_mean", indicator[7].item(), t_env)
+            self.logger.log_stat("di_std", indicator[8].item(), t_env)
+
             self.logger.log_stat("grad_norm", grad_norm, t_env)
             mask_elems = mask.sum().item()
             self.logger.log_stat("td_error_abs", (masked_td_error.abs().sum().item() / mask_elems), t_env)
