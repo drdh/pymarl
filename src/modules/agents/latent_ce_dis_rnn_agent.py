@@ -119,6 +119,7 @@ class LatentCEDisRNNAgent(nn.Module):
             if cur_dis_loss_weight > 0:
                 dis_loss = 0
                 dissimilarity_cat = None
+                mi_cat = None
                 latent_dis = latent.clone().view(self.bs, self.n_agents, -1)
                 latent_move = latent.clone().view(self.bs, self.n_agents, -1)
                 for agent_i in range(self.n_agents):
@@ -136,15 +137,30 @@ class LatentCEDisRNNAgent(nn.Module):
                         dissimilarity_cat = dissimilarity.view(self.bs, -1).clone()
                     else:
                         dissimilarity_cat = th.cat([dissimilarity_cat, dissimilarity.view(self.bs, -1)], dim=1)
+                    if mi_cat is None:
+                        mi_cat = mi.view(self.bs, -1).clone()
+                    else:
+                        mi_cat = th.cat([mi_cat,mi.view(self.bs,-1)],dim=1)
 
                     #dis_loss -= (mi + dissimilarity).sum() / self.bs / self.n_agents
-                    dis_loss -= th.clamp(mi / 100 + dissimilarity, max=0.18).sum() / self.bs / self.n_agents
-                self.mi=mi
-                self.dissimilarity=dissimilarity
+                    #dis_loss -= th.clamp(mi / 100 + dissimilarity, max=0.18).sum() / self.bs / self.n_agents
+
+                mi_min=mi_cat.min(dim=1,keepdim=True)[0]
+                mi_max=mi_cat.max(dim=1,keepdim=True)[0]
+                di_min = dissimilarity_cat.min(dim=1, keepdim=True)[0]
+                di_max = dissimilarity_cat.max(dim=1, keepdim=True)[0]
+
+                mi_cat=(mi_cat-mi_min)/(mi_max-mi_min+ 1e-12 )
+                dissimilarity_cat=(dissimilarity_cat-di_min)/(di_max-di_min+ 1e-12 )
+
+                dis_loss = - th.clamp(mi_cat+dissimilarity_cat, max=1.0).sum()/self.bs/self.n_agents
                 dis_norm = th.norm(dissimilarity_cat, p=1, dim=1).sum() / self.bs / self.n_agents
 
                 c_dis_loss = (dis_loss + dis_norm) / self.n_agents * cur_dis_loss_weight
                 loss = ce_loss +  c_dis_loss
+
+                self.mi = mi_cat[0]
+                self.dissimilarity = dissimilarity_cat[0]
             else:
                 c_dis_loss = th.zeros_like(loss)
                 loss = ce_loss
