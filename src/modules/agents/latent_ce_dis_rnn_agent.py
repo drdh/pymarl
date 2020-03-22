@@ -142,7 +142,6 @@ class LatentCEDisRNNAgent(nn.Module):
                     else:
                         mi_cat = th.cat([mi_cat,mi.view(self.bs,-1)],dim=1)
 
-                    #dis_loss -= (mi + dissimilarity).sum() / self.bs / self.n_agents
                     #dis_loss -= th.clamp(mi / 100 + dissimilarity, max=0.18).sum() / self.bs / self.n_agents
 
                 mi_min=mi_cat.min(dim=1,keepdim=True)[0]
