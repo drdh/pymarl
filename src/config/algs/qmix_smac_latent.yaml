@@ -27,25 +27,15 @@ name: "qmix_smac_latent_parallel"
 agent: "latent_rnn"
 mac: "separate_mac"
 
-latent_dim: 2
-#entropy_loss_weight : 1.0
-#ce_loss_weight: 1e-4
+latent_dim: 3
 kl_loss_weight: 1e-4
-h_loss_weight: 1e-6
-var_floor: 1e-3
-#hg_dim: 16
-NN_HIDDEN_SIZE: 12
-dis_loss_weight: 1e-2
-#dis_cur: True
-#dis_net: True
-dis_time: 5000000
+h_loss_weight: 1e-2
+var_floor: 2e-3
+NN_HIDDEN_SIZE: 16
+dis_loss_weight: 1e-4
+dis_time: 0
 dis_sigmoid: False
 
-#evolve_balance: 0.999
-#snail_max_t: 128
-#snail_key_size: 8
-#snail_value_size: 8
-#snail_filters: 8
 
 use_tensorboard: True
 save_model: True
