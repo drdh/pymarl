@@ -152,10 +152,12 @@ class LatentCEDisRNNAgent(nn.Module):
                 mi_cat=(mi_cat-mi_min)/(mi_max-mi_min+ 1e-12 )
                 dissimilarity_cat=(dissimilarity_cat-di_min)/(di_max-di_min+ 1e-12 )
 
-                dis_loss = - th.clamp(mi_cat+dissimilarity_cat, max=1.0).sum()/self.bs/self.n_agents
+                #dis_loss = - th.clamp(mi_cat+dissimilarity_cat, max=1.0).sum()/self.bs/self.n_agents
+                dis_loss = ((mi_cat + dissimilarity_cat - 1.0 )**2).sum() / self.bs / self.n_agents
                 dis_norm = th.norm(dissimilarity_cat, p=1, dim=1).sum() / self.bs / self.n_agents
 
-                c_dis_loss = (dis_loss + dis_norm) / self.n_agents * cur_dis_loss_weight
+                #c_dis_loss = (dis_loss + dis_norm) / self.n_agents * cur_dis_loss_weight
+                c_dis_loss = (dis_norm + self.args.soft_constraint_weight * dis_loss) / self.n_agents * cur_dis_loss_weight
                 loss = ce_loss +  c_dis_loss
 
                 self.mi = mi_cat[0]
