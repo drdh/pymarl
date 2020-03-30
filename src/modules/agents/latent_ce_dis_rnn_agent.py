@@ -47,7 +47,7 @@ class LatentCEDisRNNAgent(nn.Module):
         self.fc2_b_nn = nn.Linear(NN_HIDDEN_SIZE, args.n_actions)
 
         # Dis Net
-        self.dis_net = nn.Sequential(nn.Linear(args.latent_dim * 3, NN_HIDDEN_SIZE * 2),
+        self.dis_net = nn.Sequential(nn.Linear(args.latent_dim * 2, NN_HIDDEN_SIZE * 2),
                                      nn.BatchNorm1d(NN_HIDDEN_SIZE * 2),
                                      activation_func,
                                      nn.Linear(NN_HIDDEN_SIZE * 2, 1))
@@ -128,10 +128,11 @@ class LatentCEDisRNNAgent(nn.Module):
                         [latent_move[:, -1, :].unsqueeze(1), latent_move[:, :-1, :]], dim=1)
                     latent_dis_pair = th.cat([latent_dis[:, :, :self.latent_dim],
                                               latent_move[:, :, :self.latent_dim],
-                                             (latent_dis[:, :, :self.latent_dim]-latent_move[:, :, :self.latent_dim])**2], dim=2)
-                    mi = gaussian_embed.log_prob(latent_move.view(self.bs * self.n_agents, -1)).sum(dim=1,keepdim=True) / self.latent_dim
+                                            # (latent_dis[:, :, :self.latent_dim]-latent_move[:, :, :self.latent_dim])**2
+                                              ], dim=2)
+                    mi = th.clamp(gaussian_embed.log_prob(latent_move.view(self.bs * self.n_agents, -1))+13.9, min=-13.9).sum(dim=1,keepdim=True) / self.latent_dim
 
-                    dissimilarity = th.abs(self.dis_net(latent_dis_pair.view(-1, 3 * self.latent_dim)))
+                    dissimilarity = th.abs(self.dis_net(latent_dis_pair.view(-1, 2 * self.latent_dim)))
 
                     if dissimilarity_cat is None:
                         dissimilarity_cat = dissimilarity.view(self.bs, -1).clone()
