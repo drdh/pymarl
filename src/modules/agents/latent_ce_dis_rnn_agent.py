@@ -47,10 +47,10 @@ class LatentCEDisRNNAgent(nn.Module):
         self.fc2_b_nn = nn.Linear(NN_HIDDEN_SIZE, args.n_actions)
 
         # Dis Net
-        self.dis_net = nn.Sequential(nn.Linear(args.latent_dim * 2, NN_HIDDEN_SIZE * 2),
-                                     nn.BatchNorm1d(NN_HIDDEN_SIZE * 2),
+        self.dis_net = nn.Sequential(nn.Linear(args.latent_dim * 2, NN_HIDDEN_SIZE ),
+                                     nn.BatchNorm1d(NN_HIDDEN_SIZE ),
                                      activation_func,
-                                     nn.Linear(NN_HIDDEN_SIZE * 2, 1))
+                                     nn.Linear(NN_HIDDEN_SIZE , 1))
 
         self.mi= th.rand(args.n_agents*args.n_agents)
         self.dissimilarity = th.rand(args.n_agents*args.n_agents)
