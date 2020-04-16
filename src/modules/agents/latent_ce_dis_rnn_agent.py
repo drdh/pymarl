@@ -96,11 +96,11 @@ class LatentCEDisRNNAgent(nn.Module):
         gaussian_embed = D.Normal(latent_embed[:, :self.latent_dim], (latent_embed[:, self.latent_dim:]) ** (1 / 2))
         latent = gaussian_embed.rsample()
 
-        c_dis_loss = 0
-        ce_loss = 0
-        loss = 0
+        c_dis_loss = th.tensor(0.0).to(self.args.device)
+        ce_loss = th.tensor(0.0).to(self.args.device)
+        loss = th.tensor(0.0).to(self.args.device)
 
-        if train_mode:
+        if train_mode and (not self.args.roma_raw):
             #gaussian_embed = D.Normal(latent_embed[:, :self.latent_dim], (latent_embed[:, self.latent_dim:]) ** (1 / 2))
             #latent = gaussian_embed.rsample()
 
