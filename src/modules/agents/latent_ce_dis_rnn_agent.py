@@ -110,9 +110,9 @@ class LatentCEDisRNNAgent(nn.Module):
             gaussian_infer = D.Normal(self.latent_infer[:, :self.latent_dim], (self.latent_infer[:, self.latent_dim:]) ** (1 / 2))
             latent_infer = gaussian_infer.rsample()
 
-            loss = gaussian_embed.entropy().sum() * self.args.h_loss_weight + kl_divergence(gaussian_embed, gaussian_infer).sum() * self.args.kl_loss_weight   # CE = H + KL
-            loss = th.clamp(loss, max=1/max(self.args.kl_loss_weight,self.args.h_loss_weight, 1e-8))
-            loss = loss / (self.bs * self.n_agents)
+            loss = gaussian_embed.entropy().sum(dim=-1).mean() * self.args.h_loss_weight + kl_divergence(gaussian_embed, gaussian_infer).sum(dim=-1).mean() * self.args.kl_loss_weight   # CE = H + KL
+            loss = th.clamp(loss, max=2e3)
+            # loss = loss / (self.bs * self.n_agents)
             ce_loss = th.log(1 + th.exp(loss))
 
             # Dis Loss
