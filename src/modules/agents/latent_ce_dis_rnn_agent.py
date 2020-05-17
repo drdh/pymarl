@@ -24,7 +24,7 @@ class LatentCEDisRNNAgent(nn.Module):
         activation_func=nn.LeakyReLU()
 
         self.embed_net = nn.Sequential(nn.Linear(self.embed_fc_input_size, NN_HIDDEN_SIZE),
-                                       nn.BatchNorm1d(NN_HIDDEN_SIZE),
+                                       #nn.BatchNorm1d(NN_HIDDEN_SIZE),
                                        activation_func,
                                        nn.Linear(NN_HIDDEN_SIZE, args.latent_dim * 2))
 
